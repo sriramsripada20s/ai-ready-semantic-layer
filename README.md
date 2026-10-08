@@ -1,8 +1,19 @@
 # AI-Ready Semantic Layer: one certified definition per metric, served everywhere
 
-**Business problem:** When every team calculates revenue, AOV and ROAS its own way, dashboards disagree and leaders stop trusting the numbers.
+**Business problem:**
+Online retailer selling about 1,000 products through a website and a mobile app, to customers in 9 countries across 4 regions (North America, Europe, Asia Pacific, Latin America). It runs paid campaigns on search, email and social, and has 3 years of history.
 
-**Solution:** Define each metric once in code, test and govern it, and serve the same certified numbers to every BI tool and AI agent.
+**The problem: the same question gets different answers. This is the most common reason companies build a semantic layer:**
+
+• **What counts as revenue?** Finance counts only completed and shipped orders, net of discounts. Marketing's dashboard includes placed orders. A regional analyst's spreadsheet forgets returns. Each team reports a different "revenue" in the same meeting.
+
+• **Ratios get averaged wrong.** One dashboard averages daily AOV, another divides total revenue by total orders. They disagree, and nobody knows which is right.
+
+• **Marketing can't prove ROI.** Campaign spend sits in one system and orders in another, and attribution logic is copied by hand into every report.
+
+**The solution:** Define every metric once, in code, in dbt, with tests and an owner. 
+
+Compute it with MetricFlow, and serve the same certified numbers to Power BI, to Snowflake and to AI assistants. A change to a definition goes through a pull request and CI, never through someone editing a dashboard.
 
 **Stack:** Snowflake · dbt Core + MetricFlow · GitHub Actions CI/CD · Power BI (DAX) · LangGraph + Claude agent via MCP
 
@@ -38,7 +49,9 @@ The data imitates a real online store that sells about 1,000 products through a 
 
 Two small reference files (dbt seeds) map each country to its region and each promo code to its discount.
 
-The data is synthetic, generated inside Snowflake with SQL (`snowflake/02_generate_data.sql`), and tuned to behave like real data: signups grow over time, email converts best, about 4% of orders are returned, and no visit happens before a customer signs up. Customer names and emails are personal data (🔒 PII), so a Snowflake policy masks them, and they never reach the reporting tables.
+The data is synthetic, generated inside Snowflake with SQL (`snowflake/02_generate_data.sql`), and tuned to behave like real data: signups grow over time, email converts best, about 4% of orders are returned, and no visit happens before a customer signs up. 
+
+Customer names and emails are personal data (🔒 PII), so a Snowflake policy masks them, and they never reach the reporting tables.
 
 ![Source ERD: how the raw tables relate](docs/images/erd_sources.png)
 
