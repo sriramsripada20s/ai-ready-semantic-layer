@@ -67,7 +67,7 @@ The marts follow a **star schema**:
 
 **Tests guard every table:** contracts lock each core table's columns and types, unit tests check the business logic, and data tests check keys, ranges and totals. For example, one test proves the order lines add up exactly to the order totals.
 
-![Mart ERD: star schema with 3 facts and 6 dimensions](docs/images/erd_marts.png)
+![Mart ERD: star schema with 3 facts and 6 dimensions](docs/images/erd_marts1.png)
 
 On top of these marts, the **MetricFlow semantic layer** defines every metric once (revenue, AOV, ROAS and 30 more). Each mart's join keys are declared, so MetricFlow joins tables safely by itself, and `net_revenue` is defined once and reused by every ratio and growth metric, so the revenue rule can't drift.
 
