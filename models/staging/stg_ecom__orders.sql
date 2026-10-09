@@ -17,8 +17,8 @@ cleaned as (
         order_id,
         customer_id,
         session_id,
-        -- [10] A device clock bug added exactly one year to some recent orders.
-        --      An order can't be placed after it was loaded, so subtract the year back.
+        -- The bug added one extra year to some ordered_at values, making them later than _loaded_at, which violates the business rule.
+        -- If ordered_at > _loaded_at, subtract one year; otherwise, keep ordered_at unchanged.
         case
             when ordered_at > _loaded_at then {{ dbt.dateadd('year', -1, 'ordered_at') }}
             else ordered_at

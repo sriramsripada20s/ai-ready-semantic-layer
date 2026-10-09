@@ -7,6 +7,7 @@ seed-paths: ["seeds"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
+analysis-paths: ["analyses"]
 clean-targets: ["target", "dbt_packages", "logs"]
 
 models:
@@ -20,6 +21,9 @@ models:
     marts:
       +materialized: table
       +schema: marts
+    audit:
+        +materialized: table
+        +schema: audit
 
 seeds:
   ecom_semantic_layer:

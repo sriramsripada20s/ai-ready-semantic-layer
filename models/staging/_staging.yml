@@ -24,3 +24,155 @@ models:
                 field: promo_code
       - name: customer_id
         data_tests: [not_null]
+
+  - name: stg_ecom__customers
+    description: >
+      Cleaned customers: deduplicated (latest load wins), emails trimmed and
+      lower-cased, country codes standardized via the country_code_aliases seed.
+      Invalid emails, QA test accounts and soft-deleted accounts are FLAGGED, not removed.
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]                 # proves the dedupe (error, not warn)
+      - name: full_name
+        config:
+          meta: {pii: true}
+      - name: email
+        config:
+          meta: {pii: true}
+        data_tests: [not_null]                         # proves fix #4 (empty -> NULL never happens)
+      - name: country_code
+        data_tests:
+          - not_null
+          - relationships:                             # proves fix #3
+              arguments:
+                to: ref('country_regions')
+                field: country_code
+      - name: acquisition_channel
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['organic', 'paid_search', 'referral', 'social']
+      - name: signup_date
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "<= current_date"
+      - name: deleted_at
+        data_tests:
+          - dbt_utils.expression_is_true:              # a closure can't precede the signup
+              arguments:
+                expression: ">= signup_date"
+              config:
+                where: "deleted_at is not null"
+      - name: is_valid_email
+        data_tests:
+          - accepted_values:                           # fix #4: flagged, not fixed -> warn (expect 100)
+              arguments:
+                values: [true]
+                quote: false
+              config:
+                severity: warn
+      - name: is_test_account
+        data_tests:
+          - accepted_values:                           # fix #5: flagged, excluded in marts -> warn (expect 50)
+              arguments:
+                values: [false]
+                quote: false
+              config:
+                severity: warn
+      - name: is_deleted
+        data_tests: [not_null]
+
+  - name: stg_ecom__products
+    description: >
+      Cleaned products: deduplicated (latest load wins), money cast from FLOAT to
+      decimal(10,2). No injected issues; orphan product ids (#9) are handled in order_items.
+    data_tests:
+      - dbt_utils.expression_is_true:                  # selling at a loss can be legitimate (clearance) -> warn
+          arguments:
+            expression: "unit_cost < list_price"
+          config:
+            severity: warn
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]                 # proves the dedupe (error, not warn)
+      - name: product_name
+        data_tests: [not_null]
+      - name: category
+        data_tests:
+          - accepted_values:                           # drives reporting: a new category must be a deliberate change
+              arguments:
+                values: ['Apparel', 'Beauty', 'Books', 'Electronics', 'Grocery', 'Home', 'Sports', 'Toys']
+      - name: brand
+        data_tests:
+          - accepted_values:                           # new suppliers are normal business -> warn, don't block
+              arguments:
+                values: ['Acme', 'Globex', 'Initech', 'Stark', 'Umbrella', 'Wayne']
+              config:
+                severity: warn
+      - name: list_price
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: false
+      - name: unit_cost
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: false
+
+  - name: stg_ecom__order_items
+    description: >
+      Cleaned order lines: deduplicated (latest load wins), zero/negative quantity
+      lines excluded, price cast from FLOAT to decimal(10,2). Missing prices and
+      unknown products are kept and reported, not fixed (backfill happens downstream).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [order_id, line_number]
+    columns:
+      - name: order_item_id
+        data_tests: [unique, not_null]                 # proves the dedupe (error, not warn)
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_ecom__orders')
+                field: order_id
+      - name: line_number
+        data_tests:
+          - dbt_utils.accepted_range:                  # line 9 only existed on the excluded lines (#8)
+              arguments:
+                min_value: 1
+                max_value: 4
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:                             # #9: product feed arrives late -> warn (expect 1,000)
+              arguments:
+                to: ref('stg_ecom__products')
+                field: product_id
+              config:
+                severity: warn
+      - name: quantity
+        data_tests:
+          - dbt_utils.accepted_range:                  # proves fix #8 (error)
+              arguments:
+                min_value: 1
+      - name: unit_price
+        data_tests:
+          - not_null:                                  # #7: flagged, backfilled downstream -> warn (expect 6,250)
+              config:
+                severity: warn
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: false
+      - name: has_missing_price
+        data_tests: [not_null]
