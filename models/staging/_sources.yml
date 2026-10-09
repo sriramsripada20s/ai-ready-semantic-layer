@@ -1,0 +1,43 @@
+#This tells dbt where the raw data lives, so you can write {{ source('ecom','orders') }} instead of hard-coding RAW.ECOM.ORDERS. 
+#It also gives you lineage, and lets you test and monitor freshness at the source.
+sources:
+  - name: ecom
+    description: Raw e-commerce app data and web analytics, as loaded.
+    database: RAW
+    schema: ECOM
+    config:
+      loaded_at_field: _loaded_at
+      freshness:
+        warn_after: {count: 24, period: hour}
+    tables:
+      - name: customers
+        columns:
+          - name: customer_id
+            data_tests: [unique, not_null]
+      - name: products
+        columns:
+          - name: product_id
+            data_tests: [unique, not_null]
+      - name: campaigns
+        columns:
+          - name: campaign_id
+            data_tests: [unique, not_null]
+      - name: web_sessions
+        columns:
+          - name: session_id
+            data_tests: [unique, not_null]
+      - name: orders
+        description: >
+          One row per order in theory. The loader re-sends orders, so duplicates
+          arrive here and are removed in staging.
+        columns:
+          - name: order_id
+            data_tests:
+              - not_null
+              - unique:
+                  config:
+                    severity: warn    # source tests REPORT what arrived; staging tests PROVE the fix
+      - name: order_items
+        columns:
+          - name: order_item_id
+            data_tests: [unique, not_null]

@@ -1,0 +1,26 @@
+models:
+  - name: stg_ecom__orders
+    description: >
+      Cleaned orders: deduplicated (latest load wins), status standardized,
+      future-dated orders corrected, promo codes normalized.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]                 # proves fix #1 (error, not warn)
+      - name: order_status
+        data_tests:
+          - accepted_values:                           # proves fix #2
+              arguments:
+                values: ['placed', 'shipped', 'completed', 'returned', 'cancelled']
+      - name: order_date
+        data_tests:
+          - dbt_utils.expression_is_true:              # proves fix #10
+              arguments:
+                expression: "<= current_date"
+      - name: promo_code
+        data_tests:
+          - relationships:                             # proves fix #11
+              arguments:
+                to: ref('promo_codes')
+                field: promo_code
+      - name: customer_id
+        data_tests: [not_null]
