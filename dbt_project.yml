@@ -1,0 +1,26 @@
+name: ecom_semantic_layer
+version: "1.0.0"
+profile: ecom_semantic_layer
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+clean-targets: ["target", "dbt_packages", "logs"]
+
+models:
+  ecom_semantic_layer:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+
+seeds:
+  ecom_semantic_layer:
+    +schema: reference

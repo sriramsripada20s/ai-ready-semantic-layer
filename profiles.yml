@@ -1,0 +1,25 @@
+ecom_semantic_layer:
+  target: "{{ env_var('DBT_TARGET', 'snowflake') }}"
+  outputs:
+    snowflake:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER', 'DBT_SVC') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'TRANSFORMER') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'TRANSFORMING') }}"
+      database: ANALYTICS
+      schema: "{{ env_var('DBT_SCHEMA', 'dbt_dev') }}"
+      threads: 8
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER', 'DBT_SVC') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'TRANSFORMER') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'TRANSFORMING') }}"
+      database: ANALYTICS
+      schema: prod
+      threads: 8
