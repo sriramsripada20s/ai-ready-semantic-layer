@@ -7,3 +7,4 @@ package-lock.yml
 *.p8
 __pycache__/
 .venv/
+.claude/

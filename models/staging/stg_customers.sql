@@ -5,7 +5,7 @@ with source as (
 ),
 
 -- No duplicates today, but the loader re-sends rows (see orders [1]).
--- Keep the LATEST loaded version, same rule as stg_ecom__orders.
+-- Keep the LATEST loaded version, same rule as stg_orders.
 deduplicated as (
     select *
     from source
