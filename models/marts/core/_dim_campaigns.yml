@@ -1,0 +1,33 @@
+models:
+  - name: dim_campaigns
+    description: One row per paid campaign flight (paid_search, email, social), with budget.
+    config:
+      meta:
+        grain: one row per campaign flight
+        primary_key: campaign_id
+        business_owner: VP Marketing
+        sla: refreshed daily
+        tier: 2
+    data_tests:
+      - dbt_utils.expression_is_true:          # a flight can't end before it starts
+          arguments:
+            expression: "end_date >= start_date"
+    columns:
+      - name: campaign_id
+        description: Primary key.
+        data_tests: [unique, not_null]
+      - name: campaign_name
+        description: Human-readable campaign name, e.g. EMAIL_FLIGHT_07.
+      - name: campaign_channel
+        description: paid_search, email or social.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['paid_search', 'email', 'social']
+      - name: start_date
+        description: First day of the flight.
+      - name: end_date
+        description: Last day of the flight.
+      - name: budget
+        description: Total media spend for the flight (parsed from text in staging).
+        data_tests: [not_null]                 # [12] proves the '$2,450,000.00' parsing worked

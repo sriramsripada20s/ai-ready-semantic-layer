@@ -11,7 +11,7 @@ select
         when list_price < 200 then 'mid'
         else 'premium'
     end as price_tier
-from {{ ref('stg_ecom__products') }}
+from {{ ref('stg_products') }}
 
 -- [9] Unknown member: order lines whose product isn't in the catalog yet (late-arriving
 -- products) point here, so revenue stays whole and the relationships test passes.

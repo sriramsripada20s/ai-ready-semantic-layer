@@ -1,0 +1,31 @@
+models:
+  - name: dim_products
+    description: Product catalog plus an Unknown product member (-1). Small reference table; no contract.
+    config:
+      meta:
+        grain: one row per product
+        primary_key: product_id
+        business_owner: VP Commerce
+        sla: refreshed daily
+        tier: 2
+    columns:
+      - name: product_id
+        description: Primary key. -1 = Unknown product (late-arriving catalog data).
+        data_tests: [unique, not_null]
+      - name: product_name
+        description: Display name.
+      - name: category
+        description: Merchandising category.
+        data_tests: [not_null]
+      - name: brand
+        description: Brand.
+      - name: list_price
+        description: Current list price (null for the Unknown member).
+      - name: unit_cost
+        description: Current unit cost (null for the Unknown member).
+      - name: price_tier
+        description: budget (<50), mid (<200), premium, or unknown.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['budget', 'mid', 'premium', 'unknown']

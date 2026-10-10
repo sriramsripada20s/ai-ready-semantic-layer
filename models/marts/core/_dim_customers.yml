@@ -1,0 +1,59 @@
+models:
+  - name: dim_customers
+    description: One row per customer with geography, segment and lifetime stats. Contains no PII.
+    config:
+      contract:
+        enforced: true
+      meta:
+        grain: one row per customer
+        primary_key: customer_id
+        business_owner: VP Growth
+        sla: refreshed daily, ready by 06:30 ET
+        tier: 1
+        consumers: [semantic_layer, power_bi]
+    columns:
+      - name: customer_id
+        description: Primary key.
+        data_type: bigint
+        constraints: [{type: not_null}, {type: primary_key}]
+        data_tests: [unique, not_null]
+      - name: country_code
+        description: ISO country code (variants like USA/U.S./uk standardized in staging).
+        data_type: varchar
+      - name: country_name
+        description: Country name (from seeds/country_regions.csv).
+        data_type: varchar
+      - name: region
+        description: Sales region. Drives row-level access in Snowflake (Phase 6).
+        data_type: varchar
+        constraints: [{type: not_null}]
+        data_tests: [not_null]                 # [3] proves every country variant was mapped
+      - name: acquisition_channel
+        description: How the customer was first acquired.
+        data_type: varchar
+      - name: signup_date
+        description: Registration date.
+        data_type: date
+      - name: first_order_date
+        description: Date of first order (null for prospects).
+        data_type: date
+      - name: lifetime_orders
+        description: All orders to date, any status.
+        data_type: bigint
+      - name: lifetime_net_revenue
+        description: Net revenue from recognized orders to date.
+        data_type: decimal(14, 2)
+      - name: customer_segment
+        description: prospect (0 orders), one_time (1), repeat (2-14), loyal (15+).
+        data_type: varchar
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['prospect', 'one_time', 'repeat', 'loyal']
+      - name: is_deleted
+        description: >
+          Account was closed (soft delete in the source). Kept so historical orders and
+          sessions keep their customer; filter on it for "current customers" counts.
+        data_type: boolean
+        data_tests: [not_null]
