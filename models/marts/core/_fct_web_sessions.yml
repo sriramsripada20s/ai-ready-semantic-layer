@@ -1,0 +1,52 @@
+models:
+  - name: fct_web_sessions
+    description: One row per web/app session. Paid sessions carry the campaign that drove them.
+    config:
+      contract:
+        enforced: true
+      meta:
+        grain: one row per session
+        primary_key: session_id
+        business_owner: VP Marketing
+        sla: refreshed daily, ready by 06:30 ET; source lag <= 24h
+        tier: 1
+        consumers: [semantic_layer, power_bi]
+    columns:
+      - name: session_id
+        description: Primary key.
+        data_type: bigint
+        constraints: [{type: not_null}, {type: primary_key}]
+        data_tests: [unique, not_null]
+      - name: customer_id
+        description: Signed-in customer.
+        data_type: bigint
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: campaign_id
+        description: Paid campaign that drove the session (null for organic/direct).
+        data_type: bigint
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_campaigns')
+                field: campaign_id
+      - name: session_started_at
+        description: Session start timestamp (UTC).
+        data_type: timestamp
+      - name: session_date
+        description: Session start date.
+        data_type: date
+        constraints: [{type: not_null}]
+      - name: traffic_source
+        description: organic_search, paid_search, email, social or direct.
+        data_type: varchar
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['organic_search', 'paid_search', 'email', 'social', 'direct']
+      - name: device_type
+        description: mobile, desktop or tablet.
+        data_type: varchar
