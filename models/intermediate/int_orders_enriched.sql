@@ -5,6 +5,8 @@ with orders as (
     select * from {{ ref('stg_orders') }}
 ),
 
+-- Orders know their session_id but not the campaign, so campaign_id comes from sessions.
+-- Last-touch attribution: the campaign behind the order's session gets the credit.
 sessions as (
     select
         session_id,
@@ -46,5 +48,7 @@ select
     line_totals.cost_amount,
     line_totals.net_amount - line_totals.cost_amount as gross_profit
 from orders
+-- inner: 1 order : 1 total, and an order with no items isn't a real sale
 inner join line_totals on orders.order_id = line_totals.order_id
+-- left: an inner join would silently drop orders with no session from revenue
 left join sessions on orders.session_id = sessions.session_id

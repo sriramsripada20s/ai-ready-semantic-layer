@@ -1,0 +1,9 @@
+models:
+  - name: metricflow_time_spine
+    description: One row per calendar day. Used by MetricFlow.
+    time_spine:
+      standard_granularity_column: date_day   # tells MetricFlow this is the daily spine
+    columns:
+      - name: date_day
+        granularity: day
+        data_tests: [unique, not_null]

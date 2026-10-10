@@ -3,6 +3,8 @@ models:
     description: >
       One row per order with line totals rolled up. Source of truth for order revenue.
       Revenue is "recognized" only when an order is completed or shipped.
+
+    # --- 2. contract + ownership ---
     config:
       contract:
         enforced: true
@@ -13,24 +15,35 @@ models:
         sla: refreshed daily, ready by 06:30 ET; source lag <= 24h
         tier: 1
         consumers: [semantic_layer, power_bi]
+
+    # --- 3. table-level tests ---
     data_tests:
-      - dbt_utils.expression_is_true:                   # money adds up (allows line rounding)
+      - dbt_utils.expression_is_true:
           arguments:
             expression: "abs(gross_amount - discount_amount - net_amount) <= 0.05"
           config: {store_failures: true}
-      - dbt_utils.expression_is_true:                   # [10] no orders from the future
+      - dbt_utils.expression_is_true:
           arguments:
             expression: "order_date <= current_date"
-      - dbt_utils.recency:                              # staleness guard: data stopped arriving?
+      - dbt_utils.recency:
           arguments: {datepart: day, field: order_date, interval: 3}
           config: {severity: warn}
 
+    # --- 4. semantic model ---
+    semantic_model:
+      enabled: true
+      name: orders
+    agg_time_dimension: order_date
+
+    # --- 5. columns ---
     columns:
+      # entities (join keys)
       - name: order_id
         description: Primary key.
         data_type: bigint
         constraints: [{type: not_null}, {type: primary_key}]
-        data_tests: [unique, not_null]                  # [1] proves dedupe held all the way to the mart
+        data_tests: [unique, not_null]
+        entity: {type: primary, name: sales_order}
       - name: customer_id
         description: Customer who placed the order. Joins to dim_customers.
         data_type: bigint
@@ -41,40 +54,54 @@ models:
               arguments:
                 to: ref('dim_customers')
                 field: customer_id
+        entity: {type: foreign, name: customer}
       - name: session_id
-        description: Web/app session that led to the order. Joins to fct_web_sessions.
+        description: Web/app session that led to the order. Null if no session.
         data_type: bigint
+        entity: {type: foreign, name: session}
       - name: campaign_id
-        description: Last-touch attribution - the campaign behind the session (null for organic/direct).
+        description: Last-touch attribution - campaign behind the order's session (null = organic/direct).
         data_type: bigint
+        entity: {type: foreign, name: campaign}
+
+      # dimensions (group by / filter)
       - name: ordered_at
-        description: Timestamp the order was placed (UTC).
+        description: Timestamp the order was placed (UTC). Detail only.
         data_type: timestamp
       - name: order_date
         description: Calendar date the order was placed.
         data_type: date
         constraints: [{type: not_null}]
+        granularity: day
+        dimension: {type: time, label: Order date}
       - name: order_status
         description: placed, shipped, completed, returned or cancelled.
         data_type: varchar
         data_tests:
-          - accepted_values:                            # [2] proves status cleanup
+          - accepted_values:
               arguments:
                 values: ['placed', 'shipped', 'completed', 'returned', 'cancelled']
+        dimension: {type: categorical, label: Order status}
       - name: sales_channel
         description: web or mobile_app.
         data_type: varchar
+        dimension: {type: categorical, label: Sales channel}
       - name: promo_code
         description: Promo code applied, or 'none'.
         data_type: varchar
         data_tests: [not_null]
+        dimension: {type: categorical, label: Promo code}
       - name: is_recognized
         description: True when revenue is recognized (status completed or shipped).
         data_type: boolean
         data_tests: [not_null]
+        dimension: {type: categorical, label: Revenue recognized}
       - name: is_first_order
         description: True for the customer's first ever order.
         data_type: boolean
+        dimension: {type: categorical, label: First order}
+
+      # amounts (used by metrics, not grouped by)
       - name: units
         description: Total units on the order.
         data_type: bigint
@@ -88,7 +115,7 @@ models:
         description: Promo discount applied.
         data_type: decimal(14, 2)
       - name: net_amount
-        description: Gross amount minus promo discount.
+        description: Gross amount minus promo discount. Unfiltered - use the net_revenue metric for reporting.
         data_type: decimal(14, 2)
       - name: cost_amount
         description: Product cost (quantity x unit cost).
@@ -96,3 +123,110 @@ models:
       - name: gross_profit
         description: Net amount minus product cost.
         data_type: decimal(14, 2)
+
+    # --- 6. metrics ---
+    metrics:
+      - name: orders
+        label: All orders
+        description: Count of all orders in any status, including cancelled and returned. For funnel maths, not sales reporting.
+        type: simple
+        agg: sum
+        expr: 1
+        fill_nulls_with: 0
+
+      - name: net_revenue
+        label: Net revenue
+        description: >
+          THE revenue number. Net of promo discounts, recognized orders only
+          (completed or shipped). Excludes placed, returned and cancelled orders.
+        type: simple
+        agg: sum
+        expr: net_amount
+        filter: "{{ Dimension('sales_order__is_recognized') }} = true"
+        fill_nulls_with: 0
+        config:
+          meta: {business_owner: VP Finance, tier: 1, certified: true}
+
+
+      - name: recognized_orders
+        label: Orders
+        description: THE official order count. Orders whose revenue is recognized (completed or shipped).
+        type: simple
+        agg: count
+        expr: order_id
+        filter: "{{ Dimension('sales_order__is_recognized') }} = true"
+        fill_nulls_with: 0
+        config:
+          meta: {business_owner: VP Finance, tier: 1, certified: true}
+
+      - name: returned_orders
+        label: Returned orders
+        description: Orders with status returned.
+        type: simple
+        agg: count
+        expr: order_id
+        filter: "{{ Dimension('sales_order__order_status') }} = 'returned'"
+        fill_nulls_with: 0
+
+      - name: gross_merchandise_value
+        label: GMV
+        description: Gross value of all non-cancelled orders before discounts and returns. A demand signal, NOT revenue.
+        type: simple
+        agg: sum
+        expr: gross_amount
+        filter: "{{ Dimension('sales_order__order_status') }} <> 'cancelled'"
+
+      - name: discount_amount
+        label: Discounts given
+        description: Promo discounts on recognized orders.
+        type: simple
+        agg: sum
+        expr: discount_amount
+        filter: "{{ Dimension('sales_order__is_recognized') }} = true"
+
+      - name: gross_profit
+        label: Gross profit
+        description: Net revenue minus product cost, recognized orders only.
+        type: simple
+        agg: sum
+        expr: gross_profit
+        filter: "{{ Dimension('sales_order__is_recognized') }} = true"
+        config:
+          meta: {business_owner: VP Finance, tier: 1, certified: true}
+
+      - name: ordering_customers
+        label: Ordering customers
+        description: Distinct customers with at least one recognized order in the period. Not additive across periods.
+        type: simple
+        agg: count_distinct
+        expr: customer_id
+        filter: "{{ Dimension('sales_order__is_recognized') }} = true"
+        config:
+          meta: {business_owner: VP Growth, tier: 1, certified: true}
+
+      - name: new_customer_orders
+        label: First orders
+        description: Orders that are a customer's first ever order (any status).
+        type: simple
+        agg: count
+        expr: order_id
+        filter: "{{ Dimension('sales_order__is_first_order') }} = true"
+        fill_nulls_with: 0
+
+      - name: median_order_value
+        label: Median order value
+        description: Median net amount of recognized orders. Less skewed by large orders than the average.
+        type: simple
+        agg: median
+        expr: net_amount
+        filter: "{{ Dimension('sales_order__is_recognized') }} = true"
+
+      - name: campaign_attributed_revenue
+        label: Campaign-attributed revenue
+        description: Net revenue from recognized orders whose session came from a paid campaign (last touch).
+        type: simple
+        agg: sum
+        expr: net_amount
+        filter: >
+          {{ Dimension('sales_order__is_recognized') }} = true
+          and {{ Entity('campaign') }} is not null
