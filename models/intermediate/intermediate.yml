@@ -1,0 +1,35 @@
+# Intermediate models: reusable building blocks between staging and marts.
+# Not exposed to BI or the semantic layer. Each one is tested at its own grain.
+models:
+  - name: int_order_lines_priced
+    description: >
+      One row per order line, with the price fallback, Unknown product mapping, promo
+      discount and gross/discount/net/cost amounts. The single definition of line money.
+    columns:
+      - name: order_item_id
+        data_tests: [unique, not_null]          # grain: one row per order line
+      - name: unit_price
+        data_tests: [not_null]                  # proves the list-price fallback (#7)
+      - name: product_id
+        data_tests: [not_null]                  # unknown products become -1, never NULL (#9)
+
+  - name: int_orders_enriched
+    description: >
+      One row per order: line totals summed up, revenue recognition (completed or
+      shipped), first-order flag and last-touch campaign attribution.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]          # grain changed from lines to orders
+      - name: is_recognized
+        data_tests: [not_null]
+
+  - name: int_customer_order_stats
+    description: "One row per customer who has ordered: first order date, lifetime orders and recognized revenue."
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]          # grain changed from orders to customers
+
+  - name: int_customer_segment_asof
+    description: >
+      Customer segment as of a date (var segment_as_of, default today). Feeds the
+      SCD2 snapshot snp_customer_segments.
