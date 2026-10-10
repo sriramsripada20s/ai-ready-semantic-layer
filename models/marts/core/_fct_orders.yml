@@ -1,0 +1,98 @@
+models:
+  - name: fct_orders
+    description: >
+      One row per order with line totals rolled up. Source of truth for order revenue.
+      Revenue is "recognized" only when an order is completed or shipped.
+    config:
+      contract:
+        enforced: true
+      meta:
+        grain: one row per order
+        primary_key: order_id
+        business_owner: VP Finance
+        sla: refreshed daily, ready by 06:30 ET; source lag <= 24h
+        tier: 1
+        consumers: [semantic_layer, power_bi]
+    data_tests:
+      - dbt_utils.expression_is_true:                   # money adds up (allows line rounding)
+          arguments:
+            expression: "abs(gross_amount - discount_amount - net_amount) <= 0.05"
+          config: {store_failures: true}
+      - dbt_utils.expression_is_true:                   # [10] no orders from the future
+          arguments:
+            expression: "order_date <= current_date"
+      - dbt_utils.recency:                              # staleness guard: data stopped arriving?
+          arguments: {datepart: day, field: order_date, interval: 3}
+          config: {severity: warn}
+
+    columns:
+      - name: order_id
+        description: Primary key.
+        data_type: bigint
+        constraints: [{type: not_null}, {type: primary_key}]
+        data_tests: [unique, not_null]                  # [1] proves dedupe held all the way to the mart
+      - name: customer_id
+        description: Customer who placed the order. Joins to dim_customers.
+        data_type: bigint
+        constraints: [{type: not_null}]
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: session_id
+        description: Web/app session that led to the order. Joins to fct_web_sessions.
+        data_type: bigint
+      - name: campaign_id
+        description: Last-touch attribution - the campaign behind the session (null for organic/direct).
+        data_type: bigint
+      - name: ordered_at
+        description: Timestamp the order was placed (UTC).
+        data_type: timestamp
+      - name: order_date
+        description: Calendar date the order was placed.
+        data_type: date
+        constraints: [{type: not_null}]
+      - name: order_status
+        description: placed, shipped, completed, returned or cancelled.
+        data_type: varchar
+        data_tests:
+          - accepted_values:                            # [2] proves status cleanup
+              arguments:
+                values: ['placed', 'shipped', 'completed', 'returned', 'cancelled']
+      - name: sales_channel
+        description: web or mobile_app.
+        data_type: varchar
+      - name: promo_code
+        description: Promo code applied, or 'none'.
+        data_type: varchar
+        data_tests: [not_null]
+      - name: is_recognized
+        description: True when revenue is recognized (status completed or shipped).
+        data_type: boolean
+        data_tests: [not_null]
+      - name: is_first_order
+        description: True for the customer's first ever order.
+        data_type: boolean
+      - name: units
+        description: Total units on the order.
+        data_type: bigint
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 1}
+      - name: gross_amount
+        description: Sum of quantity x unit price before discounts.
+        data_type: decimal(14, 2)
+      - name: discount_amount
+        description: Promo discount applied.
+        data_type: decimal(14, 2)
+      - name: net_amount
+        description: Gross amount minus promo discount.
+        data_type: decimal(14, 2)
+      - name: cost_amount
+        description: Product cost (quantity x unit cost).
+        data_type: decimal(14, 2)
+      - name: gross_profit
+        description: Net amount minus product cost.
+        data_type: decimal(14, 2)
