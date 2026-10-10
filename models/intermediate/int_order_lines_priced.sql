@@ -5,15 +5,31 @@
 with items as (
     select * from {{ ref('stg_order_items') }}
 ),
+
 orders as (
-    select order_id, customer_id, order_date, order_status, sales_channel, promo_code
+    select
+        order_id,
+        customer_id,
+        order_date,
+        order_status,
+        sales_channel,
+        promo_code
     from {{ ref('stg_orders') }}
 ),
+
 products as (
-    select product_id, list_price, unit_cost from {{ ref('stg_products') }}
+    select
+        product_id,
+        list_price,
+        unit_cost
+    from {{ ref('stg_products') }}
 ),
+
 promos as (
-    select promo_code, discount_pct from {{ ref('promo_codes') }}
+    select
+        promo_code,
+        discount_pct
+    from {{ ref('promo_codes') }}
 ),
 
 joined as (
@@ -29,20 +45,20 @@ joined as (
         orders.sales_channel,
         items.quantity,
         -- [7] price service outage -> fall back to the catalog list price
-        coalesce(items.unit_price, products.list_price)  as unit_price,
+        coalesce(items.unit_price, products.list_price) as unit_price,
         -- unknown product -> unknown cost, counted as 0 until the product arrives
-        coalesce(products.unit_cost, 0)                  as unit_cost,
-        coalesce(promos.discount_pct, 0)                 as discount_pct
+        coalesce(products.unit_cost, 0) as unit_cost,
+        coalesce(promos.discount_pct, 0) as discount_pct
     from items
-    join orders        on orders.order_id     = items.order_id
-    left join products on products.product_id = items.product_id
-    left join promos   on promos.promo_code   = orders.promo_code
+    inner join orders on items.order_id = orders.order_id
+    left join products on items.product_id = products.product_id
+    left join promos on orders.promo_code = promos.promo_code
 )
 
 select
     *,
-    cast(quantity * unit_price                      as decimal(14, 2)) as line_gross_amount,
-    cast(quantity * unit_price * discount_pct       as decimal(14, 2)) as line_discount_amount,
+    cast(quantity * unit_price as decimal(14, 2)) as line_gross_amount,
+    cast(quantity * unit_price * discount_pct as decimal(14, 2)) as line_discount_amount,
     cast(quantity * unit_price * (1 - discount_pct) as decimal(14, 2)) as line_net_amount,
-    cast(quantity * unit_cost                       as decimal(14, 2)) as line_cost_amount
+    cast(quantity * unit_cost as decimal(14, 2)) as line_cost_amount
 from joined

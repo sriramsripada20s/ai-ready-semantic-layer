@@ -21,7 +21,7 @@ cleaned as (
         d.customer_id,
         d.full_name,
         -- [4] 2,000 emails with stray spaces and capitals; empty -> NULL
-        nullif(lower(trim(d.email)), '')                as email,
+        nullif(lower(trim(d.email)), '') as email,
         -- [3] Free-text country field: 'de ' and 'uk' need trim/upper,
         --     'USA' / 'U.S.' / 'UK' are mapped by the country_code_aliases seed
         coalesce(a.country_code, upper(trim(d.country_code))) as country_code,
@@ -39,13 +39,13 @@ select
     email,
     country_code,
     acquisition_channel,
-    cast(signup_date as date)                           as signup_date,
-    cast(deleted_at as timestamp)                       as deleted_at,
+    cast(signup_date as date) as signup_date,
+    cast(deleted_at as timestamp) as deleted_at,
     -- [4] 100 emails with '@' replaced by '.at.': flagged, not repaired (we'd be guessing)
     coalesce(regexp_like(email, '^[^@ ]+@[^@ ]+\\.[^@ ]+$'), false) as is_valid_email,
     -- [5] 50 QA accounts. Uses only the domain, so it still works when email is masked ('*****@domain')
     coalesce(split_part(email, '@', 2) = 'test.example.com', false) as is_test_account,
     -- [6] Soft deletes. 21 deleted_at values are in the future (signup + 30 days):
     --     treated as scheduled closures, so the account stays active until that date
-    coalesce(deleted_at <= current_timestamp, false)    as is_deleted
+    coalesce(deleted_at <= current_timestamp, false) as is_deleted
 from cleaned

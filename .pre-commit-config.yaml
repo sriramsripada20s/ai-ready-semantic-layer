@@ -1,0 +1,33 @@
+# Fast local checks on every commit. No warehouse needed; CI runs the full dbt build.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key        # block private keys (.p8)
+      - id: check-yaml                # catch broken YAML before dbt does
+        args: [--allow-multiple-documents]
+      - id: check-added-large-files   # block data dumps over 1 MB
+        args: [--maxkb=1000]
+      - id: check-merge-conflict      # block leftover <<<<<<< markers
+      - id: end-of-file-fixer         # auto-fix: newline at end of file
+      - id: trailing-whitespace       # auto-fix: strip trailing spaces
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks                  # scan for passwords, tokens, secrets
+
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 4.4.0
+    hooks:
+      - id: sqlfluff-lint             # SQL style check (rules in .sqlfluff)
+        files: ^models/.*\.sql$
+        exclude: ^models/audit/
+
+  - repo: local
+    hooks:
+      - id: block-env-files           # never commit credentials
+        name: block .env and key files
+        entry: never commit .env or private key files
+        language: fail
+        files: '(^|/)\.env$|\.p8$|\.pem$'

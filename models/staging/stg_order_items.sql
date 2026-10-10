@@ -32,6 +32,6 @@ select
     -- Money arrives as FLOAT: cast to fixed-point so sums don't pick up rounding noise
     -- [7] 6,250 NULL prices (price service outage): kept NULL here,
     --     backfilled from products.list_price in the intermediate layer
-    cast(unit_price as decimal(10, 2))  as unit_price,
-    unit_price is null                  as has_missing_price
+    cast(unit_price as decimal(10, 2)) as unit_price,
+    unit_price is null as has_missing_price
 from sales_lines

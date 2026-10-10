@@ -1,4 +1,4 @@
-#This tells dbt where the raw data lives, so you can write {{ source('ecom','orders') }} instead of hard-coding RAW.ECOM.ORDERS. 
+#This tells dbt where the raw data lives, so you can write {{ source('ecom','orders') }} instead of hard-coding RAW.ECOM.ORDERS.
 #It also gives you lineage, and lets you test and monitor freshness at the source.
 sources:
   - name: ecom

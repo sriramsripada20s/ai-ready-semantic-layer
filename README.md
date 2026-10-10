@@ -11,7 +11,7 @@ Online retailer selling about 1,000 products through a website and a mobile app,
 
 • **Marketing can't prove ROI.** Campaign spend sits in one system and orders in another, and attribution logic is copied by hand into every report.
 
-**The solution:** Define every metric once, in code, in dbt, with tests and an owner. 
+**The solution:** Define every metric once, in code, in dbt, with tests and an owner.
 
 Compute it with MetricFlow, and serve the same certified numbers to Power BI, to Snowflake and to AI assistants. A change to a definition goes through a pull request and CI, never through someone editing a dashboard.
 
@@ -49,7 +49,7 @@ The data imitates a real online store that sells about 1,000 products through a 
 
 Two small reference files (dbt seeds) map each country to its region and each promo code to its discount.
 
-The data is synthetic, generated inside Snowflake with SQL (`snowflake/02_generate_data.sql`), and tuned to behave like real data: signups grow over time, email converts best, about 4% of orders are returned, and no visit happens before a customer signs up. 
+The data is synthetic, generated inside Snowflake with SQL (`snowflake/02_generate_data.sql`), and tuned to behave like real data: signups grow over time, email converts best, about 4% of orders are returned, and no visit happens before a customer signs up.
 
 Customer names and emails are personal data (🔒 PII), so a Snowflake policy masks them, and they never reach the reporting tables.
 

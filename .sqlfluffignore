@@ -1,0 +1,6 @@
+# Macro-heavy or generated code: not worth linting
+models/audit/
+macros/
+analyses/
+target/
+dbt_packages/

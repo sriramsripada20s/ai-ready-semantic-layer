@@ -15,11 +15,11 @@ deduplicated as (
 select
     session_id,
     customer_id,
-    cast(session_started_at as timestamp)   as session_started_at,
-    cast(session_started_at as date)        as session_date,
+    cast(session_started_at as timestamp) as session_started_at,
+    cast(session_started_at as date) as session_date,
     traffic_source,
     -- campaign_id arrives as FLOAT (all whole numbers): cast to integer so it joins cleanly to campaigns.
     -- NULL is expected: organic_search and direct traffic has no campaign.
-    cast(campaign_id as integer)            as campaign_id,
+    cast(campaign_id as integer) as campaign_id,
     device_type
 from deduplicated

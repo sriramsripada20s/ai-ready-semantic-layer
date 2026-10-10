@@ -45,4 +45,3 @@ grant role transformer to user dbt_svc;
 
 -- Optional: let your own login use the role too
 -- grant role transformer to user <your_user>;
-

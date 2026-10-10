@@ -16,8 +16,8 @@ select
     campaign_id,
     campaign_name,
     channel,
-    cast(start_date as date)    as start_date,
-    cast(end_date as date)      as end_date,
+    cast(start_date as date) as start_date,
+    cast(end_date as date) as end_date,
     -- [12] Budget exported from a spreadsheet as text ('$2,450,000.00'):
     --      strip '$' and ',' then cast. try_cast returns NULL on a bad value; the not_null test catches it.
     try_cast(replace(replace(budget, '$', ''), ',', '') as decimal(14, 2)) as budget

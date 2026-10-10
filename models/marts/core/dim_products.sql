@@ -7,7 +7,7 @@ select
     list_price,
     unit_cost,
     case
-        when list_price < 50  then 'budget'
+        when list_price < 50 then 'budget'
         when list_price < 200 then 'mid'
         else 'premium'
     end as price_tier
@@ -17,10 +17,10 @@ from {{ ref('stg_products') }}
 -- products) point here, so revenue stays whole and the relationships test passes.
 union all
 select
-    -1                as product_id,
+    -1 as product_id,
     'Unknown product' as product_name,
-    'Unknown'         as category,
-    'Unknown'         as brand,
-    null              as list_price,
-    null              as unit_cost,
-    'unknown'         as price_tier
+    'Unknown' as category,
+    'Unknown' as brand,
+    null as list_price,
+    null as unit_cost,
+    'unknown' as price_tier

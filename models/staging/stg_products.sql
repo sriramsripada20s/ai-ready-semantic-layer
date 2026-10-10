@@ -18,6 +18,6 @@ select
     category,
     brand,
     -- Money arrives as FLOAT: cast to fixed-point so sums don't pick up rounding noise
-    cast(list_price as decimal(10, 2))  as list_price,
-    cast(unit_cost as decimal(10, 2))   as unit_cost
+    cast(list_price as decimal(10, 2)) as list_price,
+    cast(unit_cost as decimal(10, 2)) as unit_cost
 from deduplicated

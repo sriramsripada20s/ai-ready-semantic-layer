@@ -17,20 +17,20 @@ cleaned as (
         order_id,
         customer_id,
         session_id,
-        -- The bug added one extra year to some ordered_at values, making them later than _loaded_at, which violates the business rule.
-        -- If ordered_at > _loaded_at, subtract one year; otherwise, keep ordered_at unchanged.
+        -- [10] device clock bug: orders dated in the future are
+        -- shifted back exactly one year so they land on the real date
         case
-            when ordered_at > _loaded_at then {{ dbt.dateadd('year', -1, 'ordered_at') }}
+            when ordered_at > _loaded_at then dateadd(year, -1, ordered_at)
             else ordered_at
-        end                                         as ordered_at,
+        end as ordered_at,
         -- [2] Casing, stray spaces and one synonym ('complete') from older app versions
         case lower(trim(status))
             when 'complete' then 'completed'
             else lower(trim(status))
-        end                                         as order_status,
+        end as order_status,
         sales_channel,
         -- [11] Promo codes typed by users: 'save10 ' -> 'SAVE10'; empty -> NULL
-        nullif(upper(trim(promo_code)), '')         as promo_code,
+        nullif(upper(trim(promo_code)), '') as promo_code,
         item_count
     from deduplicated
 )
@@ -39,8 +39,8 @@ select
     order_id,
     customer_id,
     session_id,
-    cast(ordered_at as timestamp)   as ordered_at,
-    cast(ordered_at as date)        as order_date,
+    cast(ordered_at as timestamp) as ordered_at,
+    cast(ordered_at as date) as order_date,
     order_status,
     sales_channel,
     promo_code,

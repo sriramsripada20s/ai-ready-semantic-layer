@@ -1,0 +1,33 @@
+# SQL style rules. Lints the rendered SQL without connecting to Snowflake.
+# Note: comments must be on their own line in this file.
+
+[sqlfluff]
+dialect = snowflake
+# Render {{ }} itself: no dbt run, no credentials needed
+templater = jinja
+max_line_length = 120
+# AM04: allow "select *" in CTEs. ST06: calculated columns in any order
+exclude_rules = AM04, ST06
+
+[sqlfluff:templater:jinja]
+# Understands ref(), source(), config(), var()
+apply_dbt_builtins = True
+
+[sqlfluff:indentation]
+tab_space_size = 4
+
+# Everything lower case
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = lower
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = lower
+
+# "email" is a Snowflake keyword but also our column name
+[sqlfluff:rules:references.keywords]
+ignore_words = email
