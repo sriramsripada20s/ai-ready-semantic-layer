@@ -1,0 +1,101 @@
+# dbt unit tests: test the LOGIC of a model on tiny hand-written inputs, independent
+# of the real data. Run with `dbt test --select test_type:unit` (also part of dbt build).
+unit_tests:
+
+  # Rule: line money is defined once. No promo = 0% discount; missing price falls back
+  # to list price [7]; product not in catalog maps to -1 with cost 0, revenue kept [9].
+  - name: order_lines_price_fallback_unknown_product_and_discount
+    model: int_order_lines_priced
+    given:
+      - input: ref('stg_order_items')
+        rows:
+          - {order_item_id: 1, order_id: 10, line_number: 1, product_id: 100, quantity: 2, unit_price: 50.00}
+          - {order_item_id: 2, order_id: 11, line_number: 1, product_id: 100, quantity: 1, unit_price: 50.00}
+          - {order_item_id: 3, order_id: 11, line_number: 2, product_id: 100, quantity: 1, unit_price: null}
+          - {order_item_id: 4, order_id: 11, line_number: 3, product_id: 999, quantity: 1, unit_price: 30.00}
+      - input: ref('stg_orders')
+        rows:
+          - {order_id: 10, customer_id: 1, order_date: 2026-01-05, order_status: completed, sales_channel: web, promo_code: SAVE10}
+          - {order_id: 11, customer_id: 1, order_date: 2026-01-06, order_status: completed, sales_channel: web, promo_code: null}
+      - input: ref('stg_products')
+        rows:
+          - {product_id: 100, list_price: 45.00, unit_cost: 20.00}
+      - input: ref('promo_codes')
+        rows:
+          - {promo_code: SAVE10, discount_pct: 0.10}
+    expect:
+      rows:
+        - {order_item_id: 1, product_id: 100, unit_price: 50.00, discount_pct: 0.10, line_gross_amount: 100.00, line_discount_amount: 10.00, line_net_amount: 90.00, line_cost_amount: 40.00}
+        - {order_item_id: 2, product_id: 100, unit_price: 50.00, discount_pct: 0.00, line_gross_amount: 50.00,  line_discount_amount: 0.00,  line_net_amount: 50.00, line_cost_amount: 20.00}
+        - {order_item_id: 3, product_id: 100, unit_price: 45.00, discount_pct: 0.00, line_gross_amount: 45.00,  line_discount_amount: 0.00,  line_net_amount: 45.00, line_cost_amount: 20.00}
+        - {order_item_id: 4, product_id: -1,  unit_price: 30.00, discount_pct: 0.00, line_gross_amount: 30.00,  line_discount_amount: 0.00,  line_net_amount: 30.00, line_cost_amount: 0.00}
+
+  # Rule: revenue recognized only for completed/shipped; first order flagged per customer;
+  # campaign = last touch (campaign of the order's session); gross_profit = net - cost.
+  - name: orders_recognition_first_order_and_attribution
+    model: int_orders_enriched
+    given:
+      - input: ref('stg_orders')
+        rows:
+          - {order_id: 1, customer_id: 7, session_id: 101, ordered_at: 2026-01-01 10:00:00, order_date: 2026-01-01, order_status: completed, sales_channel: web,        promo_code: null}
+          - {order_id: 2, customer_id: 7, session_id: 102, ordered_at: 2026-02-01 10:00:00, order_date: 2026-02-01, order_status: returned,  sales_channel: web,        promo_code: SAVE10}
+          - {order_id: 3, customer_id: 8, session_id: 103, ordered_at: 2026-02-03 09:00:00, order_date: 2026-02-03, order_status: shipped,   sales_channel: mobile_app, promo_code: null}
+      - input: ref('stg_web_sessions')
+        rows:
+          - {session_id: 101, campaign_id: null}
+          - {session_id: 102, campaign_id: 205}
+          - {session_id: 103, campaign_id: 110}
+      - input: ref('int_order_lines_priced')
+        rows:
+          - {order_id: 1, quantity: 2, line_gross_amount: 100.00, line_discount_amount: 0.00, line_net_amount: 100.00, line_cost_amount: 40.00}
+          - {order_id: 2, quantity: 1, line_gross_amount: 80.00,  line_discount_amount: 8.00, line_net_amount: 72.00,  line_cost_amount: 30.00}
+          - {order_id: 3, quantity: 3, line_gross_amount: 60.00,  line_discount_amount: 0.00, line_net_amount: 60.00,  line_cost_amount: 25.00}
+    expect:
+      rows:
+        - {order_id: 1, campaign_id: null, promo_code: none,   is_recognized: true,  is_first_order: true,  units: 2, net_amount: 100.00, gross_profit: 60.00}
+        - {order_id: 2, campaign_id: 205,  promo_code: SAVE10, is_recognized: false, is_first_order: false, units: 1, net_amount: 72.00,  gross_profit: 42.00}
+        - {order_id: 3, campaign_id: 110,  promo_code: none,   is_recognized: true,  is_first_order: true,  units: 3, net_amount: 60.00,  gross_profit: 35.00}
+
+  # Rule: lifetime_orders counts every order; lifetime_net_revenue only recognized ones.
+  - name: customer_lifetime_counts_all_orders_but_only_recognized_revenue
+    model: int_customer_order_stats
+    given:
+      - input: ref('int_orders_enriched')
+        rows:
+          - {customer_id: 3, order_date: 2025-02-01, is_recognized: true,  net_amount: 30.00}
+          - {customer_id: 3, order_date: 2025-03-01, is_recognized: false, net_amount: 99.00}
+    expect:
+      rows:
+        - {customer_id: 3, first_order_date: 2025-02-01, lifetime_orders: 2, lifetime_net_revenue: 30.00}
+
+  # Rule: 0 = prospect, 1 = one_time, 2-14 = repeat, 15+ = loyal. Both sides of each
+  # boundary (1/2 and 14/15) are tested, and the QA test account [5] must disappear.
+  - name: customer_segment_thresholds
+    model: dim_customers
+    given:
+      - input: ref('stg_customers')
+        rows:
+          - {customer_id: 1, country_code: US, acquisition_channel: organic,  signup_date: 2025-01-01, is_test_account: false}
+          - {customer_id: 2, country_code: US, acquisition_channel: organic,  signup_date: 2025-01-01, is_test_account: false}
+          - {customer_id: 3, country_code: DE, acquisition_channel: social,   signup_date: 2025-01-01, is_test_account: false}
+          - {customer_id: 4, country_code: IN, acquisition_channel: referral, signup_date: 2025-01-01, is_test_account: false}
+          - {customer_id: 5, country_code: US, acquisition_channel: organic,  signup_date: 2025-01-01, is_test_account: false}
+          - {customer_id: 900001, country_code: US, acquisition_channel: organic, signup_date: 2025-01-01, is_test_account: true}
+      - input: ref('country_regions')
+        rows:
+          - {country_code: US, country_name: United States, region: North America}
+          - {country_code: DE, country_name: Germany,       region: Europe}
+          - {country_code: IN, country_name: India,         region: Asia Pacific}
+      - input: ref('int_customer_order_stats')
+        rows:
+          - {customer_id: 2, first_order_date: 2025-02-01, lifetime_orders: 1,  lifetime_net_revenue: 50.00}
+          - {customer_id: 3, first_order_date: 2025-02-01, lifetime_orders: 2,  lifetime_net_revenue: 30.00}
+          - {customer_id: 4, first_order_date: 2025-02-01, lifetime_orders: 15, lifetime_net_revenue: 150.00}
+          - {customer_id: 5, first_order_date: 2025-02-01, lifetime_orders: 14, lifetime_net_revenue: 140.00}
+    expect:
+      rows:   # customer 900001 (test account) is absent: that's the assertion
+        - {customer_id: 1, region: North America, lifetime_orders: 0,  lifetime_net_revenue: 0.00,   customer_segment: prospect}
+        - {customer_id: 2, region: North America, lifetime_orders: 1,  lifetime_net_revenue: 50.00,  customer_segment: one_time}
+        - {customer_id: 3, region: Europe,        lifetime_orders: 2,  lifetime_net_revenue: 30.00,  customer_segment: repeat}
+        - {customer_id: 4, region: Asia Pacific,  lifetime_orders: 15, lifetime_net_revenue: 150.00, customer_segment: loyal}
+        - {customer_id: 5, region: North America, lifetime_orders: 14, lifetime_net_revenue: 140.00, customer_segment: repeat}
