@@ -39,7 +39,6 @@ models:
           - accepted_values:
               arguments:
                 values: ['budget', 'mid', 'premium', 'unknown']
-        dimension: {type: categorical, label: Price tier}
 
       # detail (not grouped by)
       - name: product_name
