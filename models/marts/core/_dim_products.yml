@@ -1,6 +1,8 @@
 models:
   - name: dim_products
     description: Product catalog plus an Unknown product member (-1). Small reference table; no contract.
+
+    # --- ownership (no contract: internal, low blast radius) ---
     config:
       meta:
         grain: one row per product
@@ -8,24 +10,40 @@ models:
         business_owner: VP Commerce
         sla: refreshed daily
         tier: 2
+
+    # --- semantic model: dimensions only, no metrics, so no agg_time_dimension needed ---
+    semantic_model:
+      enabled: true
+      name: products
+
+    # --- columns ---
     columns:
+      # entity: fct_order_items joins here on `product`
       - name: product_id
         description: Primary key. -1 = Unknown product (late-arriving catalog data).
         data_tests: [unique, not_null]
-      - name: product_name
-        description: Display name.
+        entity: {type: primary, name: product}
+
+      # dimensions (group by / filter) - available to every metric that has a product
       - name: category
-        description: Merchandising category.
+        description: Merchandising category ('Unknown' for product -1).
         data_tests: [not_null]
+        dimension: {type: categorical, label: Category}
       - name: brand
         description: Brand.
-      - name: list_price
-        description: Current list price (null for the Unknown member).
-      - name: unit_cost
-        description: Current unit cost (null for the Unknown member).
+        dimension: {type: categorical, label: Brand}
       - name: price_tier
         description: budget (<50), mid (<200), premium, or unknown.
         data_tests:
           - accepted_values:
               arguments:
                 values: ['budget', 'mid', 'premium', 'unknown']
+        dimension: {type: categorical, label: Price tier}
+
+      # detail (not grouped by)
+      - name: product_name
+        description: Display name.
+      - name: list_price
+        description: Current list price (null for the Unknown member).
+      - name: unit_cost
+        description: Current unit cost (null for the Unknown member).
