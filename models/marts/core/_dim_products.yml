@@ -34,6 +34,7 @@ models:
         dimension: {type: categorical, label: Brand}
       - name: price_tier
         description: budget (<50), mid (<200), premium, or unknown.
+        dimension: {type: categorical, label: Price tier}
         data_tests:
           - accepted_values:
               arguments:
