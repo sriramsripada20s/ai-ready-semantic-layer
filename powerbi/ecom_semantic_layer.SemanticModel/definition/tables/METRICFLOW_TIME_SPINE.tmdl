@@ -1,0 +1,31 @@
+table METRICFLOW_TIME_SPINE
+	lineageTag: 4456237f-da03-43e0-bf3e-0bc3816eca30
+
+	column DATE_DAY
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: ba22cf52-8196-4a49-b7fc-8c51faf8f6e1
+		summarizeBy: none
+		sourceColumn: DATE_DAY
+
+		variation Variation
+			isDefault
+			relationship: adcc9471-2532-4716-a6fd-fc9ae60a096e
+			defaultHierarchy: LocalDateTable_afecadbe-8c54-4ef2-97c4-778978111a9f.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition METRICFLOW_TIME_SPINE = m
+		mode: import
+		source =
+				let
+				    Source = Snowflake.Databases("dwvfqzo-ktb65822.snowflakecomputing.com","REPORTING",[Implementation="2.0"]),
+				    ANALYTICS_Database = Source{[Name="ANALYTICS",Kind="Database"]}[Data],
+				    DBT_SRIRAM_MARTS_Schema = ANALYTICS_Database{[Name="DBT_SRIRAM_MARTS",Kind="Schema"]}[Data],
+				    METRICFLOW_TIME_SPINE_Table = DBT_SRIRAM_MARTS_Schema{[Name="METRICFLOW_TIME_SPINE",Kind="Table"]}[Data]
+				in
+				    METRICFLOW_TIME_SPINE_Table
+
+	annotation PBI_ResultType = Table

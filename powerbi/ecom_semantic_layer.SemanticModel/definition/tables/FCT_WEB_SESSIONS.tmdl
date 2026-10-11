@@ -1,0 +1,91 @@
+table FCT_WEB_SESSIONS
+	lineageTag: 8db646a9-6633-4f91-8f48-92a07b185ceb
+
+	column SESSION_ID
+		dataType: double
+		lineageTag: 5b1e4042-9334-4ba8-999b-e2869baa80a6
+		summarizeBy: count
+		sourceColumn: SESSION_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column CUSTOMER_ID
+		dataType: double
+		lineageTag: 61270092-de79-4cb2-a498-17c494d0ee5e
+		summarizeBy: none
+		sourceColumn: CUSTOMER_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column CAMPAIGN_ID
+		dataType: double
+		lineageTag: b2001828-6a23-45fd-8b86-a36fb6e51d05
+		summarizeBy: none
+		sourceColumn: CAMPAIGN_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column SESSION_STARTED_AT
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: a06c2654-cb33-430d-bc04-71cc365175de
+		summarizeBy: none
+		sourceColumn: SESSION_STARTED_AT
+
+		variation Variation
+			isDefault
+			relationship: e0d921d0-080b-4228-9876-134d081f5061
+			defaultHierarchy: LocalDateTable_1bf9d95a-3c8c-40a8-aced-e8601a69a32a.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column SESSION_DATE
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: eb4e4a82-cef4-4218-a7d6-f90800c43587
+		summarizeBy: none
+		sourceColumn: SESSION_DATE
+
+		variation Variation
+			isDefault
+			relationship: 03391311-d9c4-4d7a-8218-df5adac345c2
+			defaultHierarchy: LocalDateTable_2422f213-e69e-47a0-a7ae-baee3e8f865c.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column TRAFFIC_SOURCE
+		dataType: string
+		lineageTag: 1beb7586-b1be-4800-9f29-cfef0a2e4f6e
+		summarizeBy: none
+		sourceColumn: TRAFFIC_SOURCE
+
+		annotation SummarizationSetBy = Automatic
+
+	column DEVICE_TYPE
+		dataType: string
+		lineageTag: 96beff80-9c47-44c6-af97-e1b9ea520256
+		summarizeBy: none
+		sourceColumn: DEVICE_TYPE
+
+		annotation SummarizationSetBy = Automatic
+
+	partition FCT_WEB_SESSIONS = m
+		mode: import
+		source =
+				let
+				    Source = Snowflake.Databases("dwvfqzo-ktb65822.snowflakecomputing.com","REPORTING",[Implementation="2.0"]),
+				    ANALYTICS_Database = Source{[Name="ANALYTICS",Kind="Database"]}[Data],
+				    DBT_SRIRAM_MARTS_Schema = ANALYTICS_Database{[Name="DBT_SRIRAM_MARTS",Kind="Schema"]}[Data],
+				    FCT_WEB_SESSIONS_Table = DBT_SRIRAM_MARTS_Schema{[Name="FCT_WEB_SESSIONS",Kind="Table"]}[Data]
+				in
+				    FCT_WEB_SESSIONS_Table
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,110 @@
+table DIM_DATE
+	lineageTag: b002cc3a-524c-4fd8-a0d3-cf16b4d68d1b
+	dataCategory: Time
+
+	column Date
+		isUnique
+		isKey
+		formatString: General Date
+		lineageTag: 4deb7e26-6660-4cca-b557-04521f969168
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		variation Variation
+			isDefault
+			relationship: f78cfadf-8bf4-4766-a0bb-dc615b65b7f8
+			defaultHierarchy: LocalDateTable_230d3bf6-2bb5-4ad2-908b-7c80b14e3654.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		formatString: 0
+		lineageTag: 329278cf-6803-4504-a465-068d7f9b90cd
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		lineageTag: 44bf283a-dbea-4954-a8d3-ce7ef24728d8
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Quarter]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Number'
+		formatString: 0
+		lineageTag: 486a446f-9986-4575-b2b8-961a7b6fb097
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Month Number]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month
+		lineageTag: 66a317af-ad5c-461b-abcc-8d46990847b7
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month]
+		sortByColumn: 'Month Number'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Year Month'
+		lineageTag: b6c6699c-e9bb-4c50-ab12-ce9379be0431
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year Month]
+		sortByColumn: 'Year Month Key'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Year Month Key'
+		formatString: 0
+		lineageTag: de48202a-0621-44f6-912d-e0632e94b2b0
+		summarizeBy: count
+		isNameInferred
+		sourceColumn: [Year Month Key]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Weekday
+		lineageTag: fc9c4f27-def0-43c0-b919-646ebed978d5
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Weekday]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Complete Month'
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: c0d9ca72-e7e4-4fba-a3cd-a4cf7ce2d567
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Is Complete Month]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition DIM_DATE = calculated
+		mode: import
+		source =
+
+				VAR _MinDate = MIN ( MIN ( FCT_ORDERS[ORDER_DATE] ), MIN ( DIM_CUSTOMERS[SIGNUP_DATE] ) )
+				VAR _MaxDate = MAX ( FCT_ORDERS[ORDER_DATE] )
+				RETURN
+				ADDCOLUMNS (
+				    CALENDAR ( DATE ( YEAR ( _MinDate ), 1, 1 ), DATE ( YEAR ( _MaxDate ), 12, 31 ) ),
+				    "Year",              YEAR ( [Date] ),
+				    "Quarter",           "Q" & QUARTER ( [Date] ),
+				    "Month Number",      MONTH ( [Date] ),
+				    "Month",             FORMAT ( [Date], "MMM" ),
+				    "Year Month",        FORMAT ( [Date], "YYYY-MM" ),
+				    "Year Month Key",    YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
+				    "Weekday",           FORMAT ( [Date], "ddd" ),
+				    "Is Complete Month", [Date] < DATE ( YEAR ( TODAY () ), MONTH ( TODAY () ), 1 )
+				)
+
+	annotation PBI_Id = f6d34329770d44948ebbafcb818b3550

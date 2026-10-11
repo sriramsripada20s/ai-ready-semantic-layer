@@ -1,0 +1,126 @@
+table DIM_CUSTOMERS
+	lineageTag: 9db965df-2964-491a-a6a5-b4e334eb99e8
+
+	column CUSTOMER_ID
+		dataType: double
+		lineageTag: c57fd8f0-0eb2-4072-b08e-7a0ff9965943
+		summarizeBy: none
+		sourceColumn: CUSTOMER_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column COUNTRY_CODE
+		dataType: string
+		lineageTag: 51279425-ca6f-4b9e-a5a1-068f3f998a4e
+		summarizeBy: none
+		sourceColumn: COUNTRY_CODE
+
+		annotation SummarizationSetBy = Automatic
+
+	column COUNTRY_NAME
+		dataType: string
+		lineageTag: 2d992003-9bd3-405e-9ea6-a86141b27f48
+		summarizeBy: none
+		sourceColumn: COUNTRY_NAME
+
+		annotation SummarizationSetBy = Automatic
+
+	column REGION
+		dataType: string
+		lineageTag: 958b7a0f-8c71-4434-8ac9-ef330207e390
+		summarizeBy: none
+		sourceColumn: REGION
+
+		annotation SummarizationSetBy = Automatic
+
+	column ACQUISITION_CHANNEL
+		dataType: string
+		lineageTag: 9ee9f31a-2875-4df7-906f-c560ab84c215
+		summarizeBy: none
+		sourceColumn: ACQUISITION_CHANNEL
+
+		annotation SummarizationSetBy = Automatic
+
+	column SIGNUP_DATE
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 99986582-b08f-4b5c-a337-d82b72fa5042
+		summarizeBy: none
+		sourceColumn: SIGNUP_DATE
+
+		variation Variation
+			isDefault
+			relationship: 5af07231-1b3f-48cb-8b6b-53f707e5500a
+			defaultHierarchy: LocalDateTable_fa281772-9907-4685-a65a-5be76cc30002.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column FIRST_ORDER_DATE
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 27ee143f-f319-48aa-bdcb-f6b782d569c3
+		summarizeBy: none
+		sourceColumn: FIRST_ORDER_DATE
+
+		variation Variation
+			isDefault
+			relationship: 8b51b775-194c-435a-b193-85a356ee6fc9
+			defaultHierarchy: LocalDateTable_ed5d4862-f1ce-4f01-8c47-9e25d33422ea.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column LIFETIME_ORDERS
+		dataType: double
+		lineageTag: 8c1c22bc-7942-4453-9e04-0531a9f0fcab
+		summarizeBy: sum
+		sourceColumn: LIFETIME_ORDERS
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column LIFETIME_NET_REVENUE
+		dataType: double
+		lineageTag: 0c2f7082-64b4-4820-b6c1-adcbafd2dc00
+		summarizeBy: sum
+		sourceColumn: LIFETIME_NET_REVENUE
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column CUSTOMER_SEGMENT
+		dataType: string
+		lineageTag: 09ee3b93-7128-40ec-82f2-15e3e177582d
+		summarizeBy: none
+		sourceColumn: CUSTOMER_SEGMENT
+
+		annotation SummarizationSetBy = Automatic
+
+	column IS_DELETED
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 596cbfdf-752c-4c66-95ca-32adf3a98e2f
+		summarizeBy: none
+		sourceColumn: IS_DELETED
+
+		annotation SummarizationSetBy = Automatic
+
+	partition DIM_CUSTOMERS = m
+		mode: import
+		source =
+				let
+				    Source = Snowflake.Databases("dwvfqzo-ktb65822.snowflakecomputing.com","REPORTING",[Implementation="2.0"]),
+				    ANALYTICS_Database = Source{[Name="ANALYTICS",Kind="Database"]}[Data],
+				    DBT_SRIRAM_MARTS_Schema = ANALYTICS_Database{[Name="DBT_SRIRAM_MARTS",Kind="Schema"]}[Data],
+				    DIM_CUSTOMERS_Table = DBT_SRIRAM_MARTS_Schema{[Name="DIM_CUSTOMERS",Kind="Table"]}[Data]
+				in
+				    DIM_CUSTOMERS_Table
+
+	annotation PBI_ResultType = Table

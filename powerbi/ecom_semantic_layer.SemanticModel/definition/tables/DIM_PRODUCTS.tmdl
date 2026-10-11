@@ -1,0 +1,77 @@
+table DIM_PRODUCTS
+	lineageTag: 4a54f6db-6294-4c15-9949-5eec7a53cebd
+
+	column PRODUCT_ID
+		dataType: double
+		lineageTag: 4fe7ac1f-61c8-4613-b0d4-330a1fe66cbe
+		summarizeBy: none
+		sourceColumn: PRODUCT_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column PRODUCT_NAME
+		dataType: string
+		lineageTag: ba9eba75-628b-4c20-adfd-ce4d5ae1cdbb
+		summarizeBy: none
+		sourceColumn: PRODUCT_NAME
+
+		annotation SummarizationSetBy = Automatic
+
+	column CATEGORY
+		dataType: string
+		lineageTag: 090d09ee-5c5a-4c85-9bf6-c126bd276bc5
+		summarizeBy: none
+		sourceColumn: CATEGORY
+
+		annotation SummarizationSetBy = Automatic
+
+	column BRAND
+		dataType: string
+		lineageTag: 0c82f151-d51e-4449-8a4b-339f9a2d286b
+		summarizeBy: none
+		sourceColumn: BRAND
+
+		annotation SummarizationSetBy = Automatic
+
+	column LIST_PRICE
+		dataType: double
+		lineageTag: d4ccb2f7-6a80-4ff2-80f4-dc51c6d2b094
+		summarizeBy: none
+		sourceColumn: LIST_PRICE
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column UNIT_COST
+		dataType: double
+		lineageTag: 47e12628-cd01-4407-ab1d-1adc87ac7626
+		summarizeBy: none
+		sourceColumn: UNIT_COST
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column PRICE_TIER
+		dataType: string
+		lineageTag: a1bc5a9b-9997-43b7-a263-62d9babce195
+		summarizeBy: none
+		sourceColumn: PRICE_TIER
+
+		annotation SummarizationSetBy = Automatic
+
+	partition DIM_PRODUCTS = m
+		mode: import
+		source =
+				let
+				    Source = Snowflake.Databases("dwvfqzo-ktb65822.snowflakecomputing.com","REPORTING",[Implementation="2.0"]),
+				    ANALYTICS_Database = Source{[Name="ANALYTICS",Kind="Database"]}[Data],
+				    DBT_SRIRAM_MARTS_Schema = ANALYTICS_Database{[Name="DBT_SRIRAM_MARTS",Kind="Schema"]}[Data],
+				    DIM_PRODUCTS_Table = DBT_SRIRAM_MARTS_Schema{[Name="DIM_PRODUCTS",Kind="Table"]}[Data]
+				in
+				    DIM_PRODUCTS_Table
+
+	annotation PBI_ResultType = Table

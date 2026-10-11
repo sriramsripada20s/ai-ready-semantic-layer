@@ -1,0 +1,38 @@
+model Model
+	culture: en-IN
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	valueFilterBehavior: independent
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["DIM_CAMPAIGNS","DIM_PRODUCTS","DIM_CUSTOMERS","FCT_ORDER_ITEMS","FCT_ORDERS","FCT_WEB_SESSIONS","METRICFLOW_TIME_SPINE"]
+
+annotation PBI_ProTooling = ["MCP-PBIModeling","DevMode"]
+
+ref table DIM_CAMPAIGNS
+ref table DateTableTemplate_90792f30-1662-4825-8a88-3042463783ad
+ref table LocalDateTable_0c7c6949-a395-4987-8ea5-4052ce1e5172
+ref table LocalDateTable_5fce3a96-040d-4b0a-a679-2e9c88b6b19f
+ref table DIM_PRODUCTS
+ref table DIM_CUSTOMERS
+ref table LocalDateTable_fa281772-9907-4685-a65a-5be76cc30002
+ref table LocalDateTable_ed5d4862-f1ce-4f01-8c47-9e25d33422ea
+ref table FCT_ORDER_ITEMS
+ref table LocalDateTable_f4363d10-a5f5-4ea7-97f2-2a336c129dac
+ref table FCT_ORDERS
+ref table LocalDateTable_75495db8-d620-4457-a3be-2ff388d211a6
+ref table LocalDateTable_193cd8b4-7156-40dc-972c-fb1928769b9e
+ref table FCT_WEB_SESSIONS
+ref table LocalDateTable_1bf9d95a-3c8c-40a8-aced-e8601a69a32a
+ref table LocalDateTable_2422f213-e69e-47a0-a7ae-baee3e8f865c
+ref table METRICFLOW_TIME_SPINE
+ref table LocalDateTable_afecadbe-8c54-4ef2-97c4-778978111a9f
+ref table DIM_DATE
+ref table LocalDateTable_230d3bf6-2bb5-4ad2-908b-7c80b14e3654
+ref table _Measures
+
+ref cultureInfo en-IN

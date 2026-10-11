@@ -1,0 +1,177 @@
+table FCT_ORDER_ITEMS
+	lineageTag: 0d237396-9eba-452b-a5de-c3c6bd1f8875
+
+	column ORDER_ITEM_ID
+		dataType: double
+		lineageTag: 8fd4661b-65de-4be9-bcbe-94d81492a085
+		summarizeBy: count
+		sourceColumn: ORDER_ITEM_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ORDER_ID
+		dataType: double
+		lineageTag: bafddf36-d14c-42c9-b7bc-c67b00458560
+		summarizeBy: count
+		sourceColumn: ORDER_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column LINE_NUMBER
+		dataType: double
+		lineageTag: 14f493ae-0bd2-4a21-a374-b56decd8f778
+		summarizeBy: sum
+		sourceColumn: LINE_NUMBER
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column PRODUCT_ID
+		dataType: double
+		lineageTag: d63bda5f-2b41-4ebf-8d8e-5efef707b903
+		summarizeBy: none
+		sourceColumn: PRODUCT_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column CUSTOMER_ID
+		dataType: double
+		lineageTag: fd985684-07a7-4f23-9b95-87632b99e52c
+		summarizeBy: none
+		sourceColumn: CUSTOMER_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ORDER_DATE
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: b96fa073-3fa1-412d-8705-c79ca096ca04
+		summarizeBy: none
+		sourceColumn: ORDER_DATE
+
+		variation Variation
+			isDefault
+			relationship: c5896469-66c2-4ade-9fda-89e018410131
+			defaultHierarchy: LocalDateTable_f4363d10-a5f5-4ea7-97f2-2a336c129dac.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column ORDER_STATUS
+		dataType: string
+		lineageTag: becf3b4b-fb3b-4bfe-9388-e8f871bc9dc0
+		summarizeBy: none
+		sourceColumn: ORDER_STATUS
+
+		annotation SummarizationSetBy = Automatic
+
+	column SALES_CHANNEL
+		dataType: string
+		lineageTag: 779f8b97-3e88-4e95-839b-8ba1bff40f40
+		summarizeBy: none
+		sourceColumn: SALES_CHANNEL
+
+		annotation SummarizationSetBy = Automatic
+
+	column QUANTITY
+		dataType: double
+		lineageTag: f8818b92-a2fc-4b6f-aef6-17c9d1971372
+		summarizeBy: sum
+		sourceColumn: QUANTITY
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column UNIT_PRICE
+		dataType: double
+		lineageTag: ce5fc255-7539-4f55-9906-6d35f5b94a2f
+		summarizeBy: sum
+		sourceColumn: UNIT_PRICE
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column UNIT_COST
+		dataType: double
+		lineageTag: d5062a46-0852-4629-8e01-67bc538437f6
+		summarizeBy: sum
+		sourceColumn: UNIT_COST
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column DISCOUNT_PCT
+		dataType: double
+		lineageTag: 162340e0-4ae6-4953-a9bf-a7c19970134f
+		summarizeBy: sum
+		sourceColumn: DISCOUNT_PCT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column LINE_GROSS_AMOUNT
+		dataType: double
+		lineageTag: 6e60b2b8-349c-4cfc-9d46-995d1495330d
+		summarizeBy: sum
+		sourceColumn: LINE_GROSS_AMOUNT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column LINE_DISCOUNT_AMOUNT
+		dataType: double
+		lineageTag: cc25475c-96ff-4975-bfc2-075ecdc36b5e
+		summarizeBy: sum
+		sourceColumn: LINE_DISCOUNT_AMOUNT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column LINE_NET_AMOUNT
+		dataType: double
+		lineageTag: 1eb06ba3-4d82-46fb-ac00-6eb4f1c65edd
+		summarizeBy: sum
+		sourceColumn: LINE_NET_AMOUNT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column LINE_COST_AMOUNT
+		dataType: double
+		lineageTag: 57c27952-e9fc-495a-a464-8e3eff51c4e5
+		summarizeBy: sum
+		sourceColumn: LINE_COST_AMOUNT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition FCT_ORDER_ITEMS = m
+		mode: import
+		source =
+				let
+				    Source = Snowflake.Databases("dwvfqzo-ktb65822.snowflakecomputing.com","REPORTING",[Implementation="2.0"]),
+				    ANALYTICS_Database = Source{[Name="ANALYTICS",Kind="Database"]}[Data],
+				    DBT_SRIRAM_MARTS_Schema = ANALYTICS_Database{[Name="DBT_SRIRAM_MARTS",Kind="Schema"]}[Data],
+				    FCT_ORDER_ITEMS_Table = DBT_SRIRAM_MARTS_Schema{[Name="FCT_ORDER_ITEMS",Kind="Table"]}[Data]
+				in
+				    FCT_ORDER_ITEMS_Table
+
+	annotation PBI_ResultType = Table
