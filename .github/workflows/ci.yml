@@ -48,6 +48,7 @@ jobs:
       # --- 3. get prod's manifest: the "state" to compare this PR against ---
       - name: Download prod manifest
         uses: dawidd6/action-download-artifact@v6       # fetches an artifact from another workflow
+        continue-on-error: true                         # prod.yml not on main yet -> 404; fall back to full build
         with:
           workflow: prod.yml
           branch: main
