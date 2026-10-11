@@ -1,0 +1,85 @@
+# CI: runs on every pull request.
+# SLIM by default: builds only the models this PR changed + everything downstream,
+# in throwaway schemas (CI_PR_<number>_*); unchanged parents are read from prod.
+# FULL build when the PR has the label `full-ci`, or when no prod manifest exists yet.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]    # `labeled` so adding full-ci re-runs CI
+
+concurrency:                      # a new push to the same PR cancels the older run
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read        # checkout the code
+  actions: read         # download the prod-manifest artifact from prod.yml runs
+
+env:
+  DBT_PROFILES_DIR: .                                   # profiles.yml is in the repo root
+  DBT_TARGET: snowflake                                 # dev-style target (not prod)
+  DBT_SCHEMA: ci_pr_${{ github.event.pull_request.number }}   # isolated schemas per PR
+  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}   # from GitHub repo secrets
+  SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+  SNOWFLAKE_PRIVATE_KEY_PATH: /tmp/rsa_key.p8           # key file written in a step below
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest        # fresh Linux machine from GitHub, discarded after the run
+    steps:
+      # --- setup ---
+      - uses: actions/checkout@v4                       # get the PR's code
+      - uses: actions/setup-python@v5                   # Python 3.11, with pip cache for speed
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements.txt            # same pinned versions as your laptop
+
+      # --- 1. code quality (no warehouse needed) ---
+      - run: pre-commit run --all-files                 # secrets, YAML, SQLFluff; catches skipped local hooks
+
+      # --- 2. Snowflake credentials ---
+      - name: Snowflake key
+        env: { KEY: "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" }
+        run: |
+          printf '%s\n' "$KEY" > /tmp/rsa_key.p8        # secret -> temp file, never printed or committed
+          chmod 600 /tmp/rsa_key.p8                     # readable only by this job
+      - run: dbt deps                                   # install dbt_utils etc.
+
+      # --- 3. get prod's manifest: the "state" to compare this PR against ---
+      - name: Download prod manifest
+        uses: dawidd6/action-download-artifact@v6       # fetches an artifact from another workflow
+        with:
+          workflow: prod.yml
+          branch: main
+          name: prod-manifest
+          path: prod-state                              # -> prod-state/manifest.json
+          if_no_artifact_found: warn                    # first run: no manifest yet -> full build
+
+      # --- 4. decide: slim or full ---
+      - name: Choose build mode
+        id: mode
+        run: |
+          if [ "${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}" = "true" ] \
+             || [ ! -f prod-state/manifest.json ]; then
+            echo "mode=full" >> "$GITHUB_OUTPUT"; echo "FULL build (label full-ci, or no prod manifest yet)"
+          else
+            echo "mode=slim" >> "$GITHUB_OUTPUT"; echo "SLIM build: changed models + downstream, parents from prod"
+          fi
+
+      # --- 5a. slim: only what changed, defer the rest to prod ---
+      - name: Slim build
+        if: steps.mode.outputs.mode == 'slim'
+        run: dbt build --select state:modified+ --defer --state prod-state --exclude tag:profiling
+
+      - name: Semantic layer (definitions only)
+        if: steps.mode.outputs.mode == 'slim'
+        run: mf validate-configs --skip-dw               # unchanged tables aren't in CI schemas, so skip warehouse checks
+
+      # --- 5b. full: everything in CI schemas, then full semantic validation ---
+      - name: Full build
+        if: steps.mode.outputs.mode == 'full'
+        run: dbt build --exclude tag:profiling
+
+      - name: Semantic layer (definitions + warehouse)
+        if: steps.mode.outputs.mode == 'full'
+        run: mf validate-configs                         # every metric's columns exist in the built tables

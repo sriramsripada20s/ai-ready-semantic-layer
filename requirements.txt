@@ -1,0 +1,7 @@
+# Pinned to the versions verified locally. Upgrade deliberately, one PR at a time.
+dbt-core==1.12.5
+dbt-core-experimental-parser==2.0.5
+dbt-snowflake==1.12.1
+dbt-metricflow==0.15.0
+sqlfluff==4.4.0
+pre-commit==4.6.2

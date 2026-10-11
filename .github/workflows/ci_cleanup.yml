@@ -1,0 +1,28 @@
+# When a PR closes (merged or not), drop its CI_PR_<number>_* schemas.
+name: CI cleanup
+on:
+  pull_request:
+    types: [closed]
+
+env:
+  DBT_PROFILES_DIR: .
+  DBT_TARGET: snowflake
+  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+  SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+  SNOWFLAKE_PRIVATE_KEY_PATH: /tmp/rsa_key.p8
+
+jobs:
+  drop-pr-schemas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Snowflake key
+        env: { KEY: "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" }
+        run: |
+          printf '%s\n' "$KEY" > /tmp/rsa_key.p8
+          chmod 600 /tmp/rsa_key.p8
+      - run: dbt deps
+      - run: 'dbt run-operation drop_pr_schemas --args "{pr_prefix: ci_pr_${{ github.event.pull_request.number }}}"'
