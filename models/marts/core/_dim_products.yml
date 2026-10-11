@@ -8,23 +8,37 @@ models:
         business_owner: VP Commerce
         sla: refreshed daily
         tier: 2
+
+    # --- semantic model (dimensions only; product metrics live on fct_order_items) ---
+    semantic_model:
+      enabled: true
+      name: products
+
     columns:
+      # entity (join key): fct_order_items joins here on `product`
       - name: product_id
         description: Primary key. -1 = Unknown product (late-arriving catalog data).
         data_tests: [unique, not_null]
+        entity: {type: primary, name: product}
+
+      # dimensions (group by / filter)
       - name: product_name
         description: Display name.
+        dimension: {type: categorical, label: Product}
       - name: category
         description: Merchandising category.
         data_tests: [not_null]
+        dimension: {type: categorical, label: Category}
       - name: brand
         description: Brand.
+        dimension: {type: categorical, label: Brand}
       - name: list_price
         description: Current list price (null for the Unknown member).
       - name: unit_cost
         description: Current unit cost (null for the Unknown member).
       - name: price_tier
         description: budget (<50), mid (<200), premium, or unknown.
+        dimension: {type: categorical, label: Price tier}
         data_tests:
           - accepted_values:
               arguments:
