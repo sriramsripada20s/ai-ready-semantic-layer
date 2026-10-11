@@ -1,9 +1,11 @@
 models:
   - name: fct_order_items
     description: One row per order line, with pricing, discount and cost. All line-level money is published here.
+
+    # --- contract + ownership ---
     config:
       contract:
-        enforced: true            # SQL must return exactly these columns and types, or the build fails
+        enforced: true                  # build fails if SQL columns/types differ from this file
       meta:
         grain: one row per order line
         primary_key: order_item_id
@@ -11,6 +13,8 @@ models:
         sla: refreshed daily, ready by 06:30 ET
         tier: 1
         consumers: [semantic_layer, power_bi]
+
+    # --- table-level tests ---
     data_tests:
       - dbt_utils.unique_combination_of_columns:       # grain: one line number per order
           arguments:
@@ -27,9 +31,10 @@ models:
     # --- semantic model ---
     semantic_model:
       enabled: true
-      name: order_items
-    agg_time_dimension: order_date
+      name: order_items                 # MetricFlow's name for this table
+    agg_time_dimension: order_date      # same date as orders, so product and order metrics line up
 
+    # --- columns ---
     columns:
       # entities (join keys)
       - name: order_item_id
@@ -43,10 +48,7 @@ models:
         data_type: bigint
         constraints: [{type: not_null}]
         data_tests: [not_null]
-        entity: {type: foreign, name: sales_order}   # reuses the order's is_recognized rule
-      - name: line_number
-        description: Line position within the order.
-        data_type: integer
+        entity: {type: foreign, name: sales_order}      # same name as in fct_orders, so they join
       - name: product_id
         description: Product sold. -1 = product not in the catalog yet (Unknown product member).
         data_type: bigint
@@ -57,11 +59,11 @@ models:
               arguments:
                 to: ref('dim_products')
                 field: product_id
-        entity: {type: foreign, name: product}
+        entity: {type: foreign, name: product}          # joins to dim_products for category/brand
       - name: customer_id
         description: Customer who placed the order.
         data_type: bigint
-        entity: {type: foreign, name: customer}
+        entity: {type: foreign, name: customer}         # product revenue by region/segment
 
       # dimensions (group by / filter)
       - name: order_date
@@ -73,6 +75,12 @@ models:
       - name: order_status
         description: Status of the parent order.
         data_type: varchar
+        dimension: {type: categorical, label: Line order status}  # used by this model's metric filters
+
+      # detail and amounts (used by metrics, not grouped by)
+      - name: line_number
+        description: Line position within the order.
+        data_type: integer
       - name: sales_channel
         description: web or mobile_app.
         data_type: varchar
@@ -111,27 +119,32 @@ models:
         description: quantity x unit_cost.
         data_type: decimal(14, 2)
 
-    # --- metrics ---
-    # Product-level metrics live here, not on fct_orders: an order holds many products.
+    # --- metrics: same "recognized" rule as orders, applied at line level ---
     metrics:
-      - name: product_net_revenue
-        label: Product net revenue
-        description: >
-          Net revenue by product, recognized orders only. Sums to net_revenue
-          (within line rounding). Use when grouping by product, category, brand or price tier.
-        type: simple
-        agg: sum
-        expr: line_net_amount
-        filter: "{{ Dimension('sales_order__is_recognized') }} = true"
-        fill_nulls_with: 0
-        config:
-          meta: {business_owner: VP Commerce, tier: 1, certified: true}
-
       - name: units_sold
         label: Units sold
-        description: Units on recognized orders.
+        description: Units on recognized orders (completed or shipped).
         type: simple
         agg: sum
         expr: quantity
-        filter: "{{ Dimension('sales_order__is_recognized') }} = true"
-        fill_nulls_with: 0
+        filter: "{{ Dimension('order_item__order_status') }} in ('completed', 'shipped')"
+
+      - name: product_net_revenue
+        label: Product net revenue
+        description: >
+          Line-level net revenue on recognized orders. Ties exactly to net_revenue
+          (tests/assert_line_revenue_ties_to_orders.sql) but can be sliced by product.
+        type: simple
+        agg: sum
+        expr: line_net_amount
+        filter: "{{ Dimension('order_item__order_status') }} in ('completed', 'shipped')"
+        config:
+          meta: {business_owner: VP Commerce, tier: 1, certified: true}
+
+      - name: product_cost
+        label: Product cost
+        description: Cost of goods on recognized orders.
+        type: simple
+        agg: sum
+        expr: line_cost_amount
+        filter: "{{ Dimension('order_item__order_status') }} in ('completed', 'shipped')"
