@@ -1,1 +1,226 @@
 cultureInfo en-IN
+
+	linguisticMetadata =
+			{
+			  "Version": "2.0.0",
+			  "Language": "en-US",
+			  "Entities": {
+			    "dim_date.year_month": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "DIM_DATE",
+			          "ConceptualProperty": "Year Month"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Month": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "dim_date.year": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "DIM_DATE",
+			          "ConceptualProperty": "Year"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Year": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "dim_customers.region": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "DIM_CUSTOMERS",
+			          "ConceptualProperty": "REGION"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Region": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "dim_customers.customer_segment": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "DIM_CUSTOMERS",
+			          "ConceptualProperty": "CUSTOMER_SEGMENT"
+			        }
+			      },
+			      "State": "Generated"
+			    },
+			    "fct_orders.sales_channel": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "FCT_ORDERS",
+			          "ConceptualProperty": "SALES_CHANNEL"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Sales channel": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "dim_products.category": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "DIM_PRODUCTS",
+			          "ConceptualProperty": "CATEGORY"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Category": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "dim_products.brand": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "DIM_PRODUCTS",
+			          "ConceptualProperty": "BRAND"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Brand": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "dim_products.price_tier": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "DIM_PRODUCTS",
+			          "ConceptualProperty": "PRICE_TIER"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Price tier": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "dim_campaigns.campaign_name": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "DIM_CAMPAIGNS",
+			          "ConceptualProperty": "CAMPAIGN_NAME"
+			        }
+			      },
+			      "State": "Generated"
+			    },
+			    "dim_campaigns.campaign_channel": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "DIM_CAMPAIGNS",
+			          "ConceptualProperty": "CAMPAIGN_CHANNEL"
+			        }
+			      },
+			      "State": "Generated"
+			    },
+			    "fct_web_sessions.device_type": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "FCT_WEB_SESSIONS",
+			          "ConceptualProperty": "DEVICE_TYPE"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Device": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "fct_web_sessions.traffic_source": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "FCT_WEB_SESSIONS",
+			          "ConceptualProperty": "TRAFFIC_SOURCE"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Traffic source": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    }
+			  }
+			}
+		contentType: json

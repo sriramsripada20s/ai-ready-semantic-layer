@@ -91,3 +91,11 @@ On top of these marts, the **MetricFlow semantic layer** defines every metric on
 - **Tested logic:** unit tests and business-rule tests guard the calculations, and slim CI on Snowflake rebuilds only what a pull request changed.
 - **Protected data:** PII is masked at the source, and row access policies limit each regional analyst to their own region.
 - **Reconciled reporting:** Power BI shows the certified metrics plus a DAX dashboard checked against them, and every page traces back to the raw data.
+
+## Power BI report
+
+Power BI reads the dbt marts (star schema) and mirrors the 20 MetricFlow metrics as DAX
+measures, verified to match MetricFlow (see [powerbi/reconciliation.md](powerbi/reconciliation.md)).
+
+![Executive overview](docs/images/img1.png)
+![Products](docs/images/img2.png)
