@@ -1,0 +1,83 @@
+table DIM_CAMPAIGNS
+	lineageTag: 6e463ca0-d0e2-4b6e-b9e9-a3e3e98a933e
+
+	column CAMPAIGN_ID
+		dataType: double
+		lineageTag: 42a249a9-ed78-4b20-bae1-3118a3a94dde
+		summarizeBy: none
+		sourceColumn: CAMPAIGN_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column CAMPAIGN_NAME
+		dataType: string
+		lineageTag: 306e973a-bde3-450a-9a4a-6bf74dc9162c
+		summarizeBy: none
+		sourceColumn: CAMPAIGN_NAME
+
+		annotation SummarizationSetBy = Automatic
+
+	column CAMPAIGN_CHANNEL
+		dataType: string
+		lineageTag: 70310433-73c3-4865-b85f-d16710a1c953
+		summarizeBy: none
+		sourceColumn: CAMPAIGN_CHANNEL
+
+		annotation SummarizationSetBy = Automatic
+
+	column START_DATE
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 857e2acc-6c28-40ae-8ed3-7aa5c5c5059d
+		summarizeBy: none
+		sourceColumn: START_DATE
+
+		variation Variation
+			isDefault
+			relationship: dda0199c-b075-44cd-8a8c-7fa9ba6c048f
+			defaultHierarchy: LocalDateTable_0c7c6949-a395-4987-8ea5-4052ce1e5172.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column END_DATE
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 22e93899-345d-49e7-a263-4cbee303c919
+		summarizeBy: none
+		sourceColumn: END_DATE
+
+		variation Variation
+			isDefault
+			relationship: 3f7ce2ea-2cbc-48f6-a097-53fd9858cefb
+			defaultHierarchy: LocalDateTable_5fce3a96-040d-4b0a-a679-2e9c88b6b19f.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column BUDGET
+		dataType: double
+		lineageTag: 4ecf24aa-7289-4df2-b16e-819b898109bc
+		summarizeBy: sum
+		sourceColumn: BUDGET
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition DIM_CAMPAIGNS = m
+		mode: import
+		source =
+				let
+				    Source = Snowflake.Databases("dwvfqzo-ktb65822.snowflakecomputing.com","REPORTING",[Implementation="2.0"]),
+				    ANALYTICS_Database = Source{[Name="ANALYTICS",Kind="Database"]}[Data],
+				    DBT_SRIRAM_MARTS_Schema = ANALYTICS_Database{[Name="DBT_SRIRAM_MARTS",Kind="Schema"]}[Data],
+				    DIM_CAMPAIGNS_Table = DBT_SRIRAM_MARTS_Schema{[Name="DIM_CAMPAIGNS",Kind="Table"]}[Data]
+				in
+				    DIM_CAMPAIGNS_Table
+
+	annotation PBI_ResultType = Table

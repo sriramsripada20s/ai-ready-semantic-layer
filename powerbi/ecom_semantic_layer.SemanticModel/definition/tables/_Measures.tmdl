@@ -1,0 +1,143 @@
+/// Home table for all report measures. Definitions mirror the MetricFlow metrics in models/marts/core/_*.yml.
+table _Measures
+	lineageTag: ce34c250-f47c-4fe0-a1f5-845469defbf7
+
+	/// Count of all orders in any status, including cancelled and returned. For funnel maths, not sales reporting.
+	measure 'All orders' = COUNTROWS ( FCT_ORDERS )
+		formatString: #,0
+		displayFolder: Orders
+		lineageTag: 2d5a99ec-04b9-4e15-ab2b-927d5f70e624
+
+	/// THE official order count. Orders whose revenue is recognized (completed or shipped).
+	measure Orders = CALCULATE ( COUNTROWS ( FCT_ORDERS ), KEEPFILTERS ( FCT_ORDERS[IS_RECOGNIZED] = TRUE () ) )
+		formatString: #,0
+		displayFolder: Orders
+		lineageTag: 2af387f6-13cf-43e2-bab7-5d8af3f9c014
+
+	/// Orders with status returned.
+	measure 'Returned orders' = CALCULATE ( COUNTROWS ( FCT_ORDERS ), KEEPFILTERS ( FCT_ORDERS[ORDER_STATUS] = "returned" ) )
+		formatString: #,0
+		displayFolder: Orders
+		lineageTag: 2e5f839f-c02f-4477-89c9-ac1fd73bc436
+
+	/// Gross value of all non-cancelled orders before discounts and returns. A demand signal, NOT revenue.
+	measure GMV = CALCULATE ( SUM ( FCT_ORDERS[GROSS_AMOUNT] ), KEEPFILTERS ( FCT_ORDERS[ORDER_STATUS] <> "cancelled" ) )
+		formatString: \$#,0.00
+		displayFolder: Orders
+		lineageTag: cf491286-6cdb-454e-917e-bf730a905606
+
+	/// THE revenue number. Net of promo discounts, recognized orders only (completed or shipped). Excludes placed, returned and cancelled orders.
+	measure 'Net revenue' = CALCULATE ( SUM ( FCT_ORDERS[NET_AMOUNT] ), KEEPFILTERS ( FCT_ORDERS[IS_RECOGNIZED] = TRUE () ) )
+		formatString: \$#,0.00
+		displayFolder: Orders
+		lineageTag: 2f0290ce-4510-48a3-8cba-4f52ecd2e149
+
+	/// Promo discounts on recognized orders.
+	measure 'Discounts given' = CALCULATE ( SUM ( FCT_ORDERS[DISCOUNT_AMOUNT] ), KEEPFILTERS ( FCT_ORDERS[IS_RECOGNIZED] = TRUE () ) )
+		formatString: \$#,0.00
+		displayFolder: Orders
+		lineageTag: b7a7aac4-5217-4986-9cbf-556ccbb49f99
+
+	/// Net revenue minus product cost, recognized orders only.
+	measure 'Gross profit' = CALCULATE ( SUM ( FCT_ORDERS[GROSS_PROFIT] ), KEEPFILTERS ( FCT_ORDERS[IS_RECOGNIZED] = TRUE () ) )
+		formatString: \$#,0.00
+		displayFolder: Orders
+		lineageTag: 18a120ff-cd58-480a-8822-aabd6734f1b8
+
+	/// Distinct customers with at least one recognized order in the period. Not additive across periods.
+	measure 'Ordering customers' = CALCULATE ( DISTINCTCOUNTNOBLANK ( FCT_ORDERS[CUSTOMER_ID] ), KEEPFILTERS ( FCT_ORDERS[IS_RECOGNIZED] = TRUE () ) )
+		formatString: #,0
+		displayFolder: Orders
+		lineageTag: c60d04df-f5a6-4c54-8bc3-7743ce38dcbb
+
+	/// Orders that are a customer's first ever order (any status).
+	measure 'First orders' = CALCULATE ( COUNTROWS ( FCT_ORDERS ), KEEPFILTERS ( FCT_ORDERS[IS_FIRST_ORDER] = TRUE () ) )
+		formatString: #,0
+		displayFolder: Orders
+		lineageTag: e2781a04-59b4-462b-b1b4-a8a304ce27e3
+
+	/// Median net amount of recognized orders. Less skewed by large orders than the average.
+	measure 'Median order value' = CALCULATE ( MEDIAN ( FCT_ORDERS[NET_AMOUNT] ), KEEPFILTERS ( FCT_ORDERS[IS_RECOGNIZED] = TRUE () ) )
+		formatString: \$#,0.00
+		displayFolder: Orders
+		lineageTag: 4fcc44e7-1fcd-449a-9ab6-ac5f9e451563
+
+	/// Net revenue from recognized orders whose session came from a paid campaign (last touch).
+	measure 'Campaign-attributed revenue' =
+			CALCULATE (
+			    SUM ( FCT_ORDERS[NET_AMOUNT] ),
+			    KEEPFILTERS ( FCT_ORDERS[IS_RECOGNIZED] = TRUE () ),
+			    KEEPFILTERS ( NOT ISBLANK ( FCT_ORDERS[CAMPAIGN_ID] ) )
+			)
+		formatString: \$#,0.00
+		displayFolder: Orders
+		lineageTag: 4cc9a227-7e3f-4015-a7b1-7297fe0353b5
+
+	/// Units on recognized orders (completed or shipped).
+	measure 'Units sold' = CALCULATE ( SUM ( FCT_ORDER_ITEMS[QUANTITY] ), KEEPFILTERS ( FCT_ORDER_ITEMS[ORDER_STATUS] IN { "completed", "shipped" } ) )
+		formatString: #,0
+		displayFolder: Products
+		lineageTag: 238a8ee8-0e06-43c4-9963-b274db3054a2
+
+	/// Line-level net revenue on recognized orders. Ties exactly to net_revenue (tests/assert_line_revenue_ties_to_orders.sql) but can be sliced by product.
+	measure 'Product net revenue' = CALCULATE ( SUM ( FCT_ORDER_ITEMS[LINE_NET_AMOUNT] ), KEEPFILTERS ( FCT_ORDER_ITEMS[ORDER_STATUS] IN { "completed", "shipped" } ) )
+		formatString: \$#,0.00
+		displayFolder: Products
+		lineageTag: 28c0b38c-ef0e-4b32-80e2-dc75ef6dacca
+
+	/// Cost of goods on recognized orders.
+	measure 'Product cost' = CALCULATE ( SUM ( FCT_ORDER_ITEMS[LINE_COST_AMOUNT] ), KEEPFILTERS ( FCT_ORDER_ITEMS[ORDER_STATUS] IN { "completed", "shipped" } ) )
+		formatString: \$#,0.00
+		displayFolder: Products
+		lineageTag: ce3cb00f-6fe5-4be8-90e6-1c53a1e94fc5
+
+	/// Count of web/app sessions.
+	measure Sessions = COUNTROWS ( FCT_WEB_SESSIONS )
+		formatString: #,0
+		displayFolder: Marketing
+		lineageTag: fa821717-d26c-4746-ae9e-118ae336fb00
+
+	/// Sessions driven by a paid campaign (paid_search, email, social).
+	measure 'Campaign sessions' = CALCULATE ( COUNTROWS ( FCT_WEB_SESSIONS ), KEEPFILTERS ( FCT_WEB_SESSIONS[TRAFFIC_SOURCE] IN { "paid_search", "email", "social" } ) )
+		formatString: #,0
+		displayFolder: Marketing
+		lineageTag: 3472e330-7f8d-4d21-8796-caa2fa4ea0c8
+
+	/// Distinct customers with a session in the period. Not additive across periods.
+	measure Visitors = DISTINCTCOUNTNOBLANK ( FCT_WEB_SESSIONS[CUSTOMER_ID] )
+		formatString: #,0
+		displayFolder: Marketing
+		lineageTag: 5038c180-d61f-4601-bd2e-6d83aced1279
+
+	/// Media budget of campaigns, attributed to the campaign start date.
+	measure 'Campaign spend' = CALCULATE ( SUM ( DIM_CAMPAIGNS[BUDGET] ), USERELATIONSHIP ( DIM_CAMPAIGNS[START_DATE], DIM_DATE[Date] ) )
+		formatString: \$#,0.00
+		displayFolder: Marketing
+		lineageTag: 33a0c49e-0546-4798-a11f-3ac8fce0dcee
+
+	/// Customers who registered in the period (test accounts excluded).
+	measure 'New signups' = CALCULATE ( COUNTROWS ( DIM_CUSTOMERS ), USERELATIONSHIP ( DIM_CUSTOMERS[SIGNUP_DATE], DIM_DATE[Date] ) )
+		formatString: #,0
+		displayFolder: Customers
+		lineageTag: 9632d4a4-c22c-4d1d-993c-87f844623a07
+
+	/// Average net revenue per purchasing customer to date (recognized orders only; prospects excluded). Group by signup date for cohort CLV. Historical, not predicted.
+	measure 'Customer lifetime value (historical)' =
+			CALCULATE (
+			    AVERAGE ( DIM_CUSTOMERS[LIFETIME_NET_REVENUE] ),
+			    KEEPFILTERS ( DIM_CUSTOMERS[CUSTOMER_SEGMENT] <> "prospect" ),
+			    USERELATIONSHIP ( DIM_CUSTOMERS[SIGNUP_DATE], DIM_DATE[Date] )
+			)
+		formatString: \$#,0.00
+		displayFolder: Customers
+		lineageTag: 87469478-ba37-4773-ae37-f45ddb422ee9
+
+	column Hidden
+		isHidden
+		lineageTag: 958bafc1-b24f-439f-bb9d-554f805fb672
+		isNameInferred
+		sourceColumn: [Hidden]
+
+	partition _Measures = calculated
+		mode: import
+		source = ROW ( "Hidden", BLANK () )

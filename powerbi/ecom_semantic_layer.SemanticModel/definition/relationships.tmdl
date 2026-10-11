@@ -1,0 +1,100 @@
+relationship dda0199c-b075-44cd-8a8c-7fa9ba6c048f
+	joinOnDateBehavior: datePartOnly
+	fromColumn: DIM_CAMPAIGNS.START_DATE
+	toColumn: LocalDateTable_0c7c6949-a395-4987-8ea5-4052ce1e5172.Date
+
+relationship 3f7ce2ea-2cbc-48f6-a097-53fd9858cefb
+	joinOnDateBehavior: datePartOnly
+	fromColumn: DIM_CAMPAIGNS.END_DATE
+	toColumn: LocalDateTable_5fce3a96-040d-4b0a-a679-2e9c88b6b19f.Date
+
+relationship 5af07231-1b3f-48cb-8b6b-53f707e5500a
+	joinOnDateBehavior: datePartOnly
+	fromColumn: DIM_CUSTOMERS.SIGNUP_DATE
+	toColumn: LocalDateTable_fa281772-9907-4685-a65a-5be76cc30002.Date
+
+relationship 8b51b775-194c-435a-b193-85a356ee6fc9
+	joinOnDateBehavior: datePartOnly
+	fromColumn: DIM_CUSTOMERS.FIRST_ORDER_DATE
+	toColumn: LocalDateTable_ed5d4862-f1ce-4f01-8c47-9e25d33422ea.Date
+
+relationship c5896469-66c2-4ade-9fda-89e018410131
+	joinOnDateBehavior: datePartOnly
+	fromColumn: FCT_ORDER_ITEMS.ORDER_DATE
+	toColumn: LocalDateTable_f4363d10-a5f5-4ea7-97f2-2a336c129dac.Date
+
+relationship 8b73f936-64b7-4853-81a6-b8e5124b7854
+	joinOnDateBehavior: datePartOnly
+	fromColumn: FCT_ORDERS.ORDERED_AT
+	toColumn: LocalDateTable_75495db8-d620-4457-a3be-2ff388d211a6.Date
+
+relationship bd807e5d-8b4c-4523-a452-ee102e2e12ff
+	joinOnDateBehavior: datePartOnly
+	fromColumn: FCT_ORDERS.ORDER_DATE
+	toColumn: LocalDateTable_193cd8b4-7156-40dc-972c-fb1928769b9e.Date
+
+relationship e0d921d0-080b-4228-9876-134d081f5061
+	joinOnDateBehavior: datePartOnly
+	fromColumn: FCT_WEB_SESSIONS.SESSION_STARTED_AT
+	toColumn: LocalDateTable_1bf9d95a-3c8c-40a8-aced-e8601a69a32a.Date
+
+relationship 03391311-d9c4-4d7a-8218-df5adac345c2
+	joinOnDateBehavior: datePartOnly
+	fromColumn: FCT_WEB_SESSIONS.SESSION_DATE
+	toColumn: LocalDateTable_2422f213-e69e-47a0-a7ae-baee3e8f865c.Date
+
+relationship adcc9471-2532-4716-a6fd-fc9ae60a096e
+	joinOnDateBehavior: datePartOnly
+	fromColumn: METRICFLOW_TIME_SPINE.DATE_DAY
+	toColumn: LocalDateTable_afecadbe-8c54-4ef2-97c4-778978111a9f.Date
+
+relationship AutoDetected_3fa53301-1b09-4566-a840-de2504135f08
+	fromColumn: FCT_ORDERS.CAMPAIGN_ID
+	toColumn: DIM_CAMPAIGNS.CAMPAIGN_ID
+
+relationship AutoDetected_4183ccc6-5979-4384-a949-1904b2884e7f
+	fromColumn: FCT_WEB_SESSIONS.CAMPAIGN_ID
+	toColumn: DIM_CAMPAIGNS.CAMPAIGN_ID
+
+relationship AutoDetected_bc7aa2c9-f9e8-430e-a1cd-05a4a2384972
+	fromColumn: FCT_ORDER_ITEMS.PRODUCT_ID
+	toColumn: DIM_PRODUCTS.PRODUCT_ID
+
+relationship AutoDetected_43ae0ddc-12a8-4656-985e-02a3ab4411fa
+	fromColumn: FCT_ORDER_ITEMS.CUSTOMER_ID
+	toColumn: DIM_CUSTOMERS.CUSTOMER_ID
+
+relationship AutoDetected_eeb8d375-a6ae-47c3-a443-e8c7519087d0
+	fromColumn: FCT_ORDERS.CUSTOMER_ID
+	toColumn: DIM_CUSTOMERS.CUSTOMER_ID
+
+relationship AutoDetected_1dd27a37-d995-4ab2-8dd9-8d3baf31c4f6
+	fromColumn: FCT_WEB_SESSIONS.CUSTOMER_ID
+	toColumn: DIM_CUSTOMERS.CUSTOMER_ID
+
+relationship f78cfadf-8bf4-4766-a0bb-dc615b65b7f8
+	joinOnDateBehavior: datePartOnly
+	fromColumn: DIM_DATE.Date
+	toColumn: LocalDateTable_230d3bf6-2bb5-4ad2-908b-7c80b14e3654.Date
+
+relationship FCT_ORDERS_ORDER_DATE_DIM_DATE_Date
+	fromColumn: FCT_ORDERS.ORDER_DATE
+	toColumn: DIM_DATE.Date
+
+relationship FCT_ORDER_ITEMS_ORDER_DATE_DIM_DATE_Date
+	fromColumn: FCT_ORDER_ITEMS.ORDER_DATE
+	toColumn: DIM_DATE.Date
+
+relationship FCT_WEB_SESSIONS_SESSION_DATE_DIM_DATE_Date
+	fromColumn: FCT_WEB_SESSIONS.SESSION_DATE
+	toColumn: DIM_DATE.Date
+
+relationship DIM_CUSTOMERS_SIGNUP_DATE_DIM_DATE_Date
+	isActive: false
+	fromColumn: DIM_CUSTOMERS.SIGNUP_DATE
+	toColumn: DIM_DATE.Date
+
+relationship DIM_CAMPAIGNS_START_DATE_DIM_DATE_Date
+	isActive: false
+	fromColumn: DIM_CAMPAIGNS.START_DATE
+	toColumn: DIM_DATE.Date

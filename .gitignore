@@ -8,3 +8,7 @@ package-lock.yml
 __pycache__/
 .venv/
 .claude/
+# Power BI: never commit data. Only the PBIP project (model + report definition) is versioned.
+*.pbix
+**/.pbi/cache.abf
+**/.pbi/localSettings.json

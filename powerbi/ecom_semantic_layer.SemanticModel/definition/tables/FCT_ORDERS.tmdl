@@ -1,0 +1,187 @@
+table FCT_ORDERS
+	lineageTag: f5a49c14-0df6-4841-8ed8-7f7d1c7f6ea2
+
+	column ORDER_ID
+		dataType: double
+		lineageTag: 1cf7250f-81a6-42e1-b78e-edaf4869f427
+		summarizeBy: count
+		sourceColumn: ORDER_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column CUSTOMER_ID
+		dataType: double
+		lineageTag: 6fbbd54b-2f6a-47c7-866c-4218648517f7
+		summarizeBy: none
+		sourceColumn: CUSTOMER_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column SESSION_ID
+		dataType: double
+		lineageTag: a4579d4c-844f-465d-bb6e-834c20820651
+		summarizeBy: count
+		sourceColumn: SESSION_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column CAMPAIGN_ID
+		dataType: double
+		lineageTag: e46c1d28-d13c-41d7-8bd3-f390baf9c6c5
+		summarizeBy: none
+		sourceColumn: CAMPAIGN_ID
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ORDERED_AT
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 39c09a82-168b-46f9-a14d-2fbb6d171f10
+		summarizeBy: none
+		sourceColumn: ORDERED_AT
+
+		variation Variation
+			isDefault
+			relationship: 8b73f936-64b7-4853-81a6-b8e5124b7854
+			defaultHierarchy: LocalDateTable_75495db8-d620-4457-a3be-2ff388d211a6.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column ORDER_DATE
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 55cfab8f-7118-4c25-8380-005fe1ea2986
+		summarizeBy: none
+		sourceColumn: ORDER_DATE
+
+		variation Variation
+			isDefault
+			relationship: bd807e5d-8b4c-4523-a452-ee102e2e12ff
+			defaultHierarchy: LocalDateTable_193cd8b4-7156-40dc-972c-fb1928769b9e.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column ORDER_STATUS
+		dataType: string
+		lineageTag: decb1f02-27cc-48f6-8529-0440256427e9
+		summarizeBy: none
+		sourceColumn: ORDER_STATUS
+
+		annotation SummarizationSetBy = Automatic
+
+	column SALES_CHANNEL
+		dataType: string
+		lineageTag: 46a2e663-2e49-4e92-b7a9-4d344813be51
+		summarizeBy: none
+		sourceColumn: SALES_CHANNEL
+
+		annotation SummarizationSetBy = Automatic
+
+	column PROMO_CODE
+		dataType: string
+		lineageTag: ed407984-56a3-4901-a5b3-20f3301d79a5
+		summarizeBy: none
+		sourceColumn: PROMO_CODE
+
+		annotation SummarizationSetBy = Automatic
+
+	column IS_RECOGNIZED
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: cd6d5a06-40f0-40a4-a0b8-107913da02db
+		summarizeBy: none
+		sourceColumn: IS_RECOGNIZED
+
+		annotation SummarizationSetBy = Automatic
+
+	column IS_FIRST_ORDER
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: d0a49a90-8ea2-4abd-9be1-6cb938f284f2
+		summarizeBy: none
+		sourceColumn: IS_FIRST_ORDER
+
+		annotation SummarizationSetBy = Automatic
+
+	column UNITS
+		dataType: double
+		lineageTag: 81e481f4-cf69-4a92-8936-57c5cd2c0551
+		summarizeBy: sum
+		sourceColumn: UNITS
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column GROSS_AMOUNT
+		dataType: double
+		lineageTag: 8e092bc7-ee52-43a3-b3b9-93835c7c0007
+		summarizeBy: sum
+		sourceColumn: GROSS_AMOUNT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column DISCOUNT_AMOUNT
+		dataType: double
+		lineageTag: ff382bca-c9f1-44c2-a88b-8d1417814a98
+		summarizeBy: sum
+		sourceColumn: DISCOUNT_AMOUNT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column NET_AMOUNT
+		dataType: double
+		lineageTag: 115fec91-dfb2-4120-a664-a9b2f4f3b296
+		summarizeBy: sum
+		sourceColumn: NET_AMOUNT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column COST_AMOUNT
+		dataType: double
+		lineageTag: 4054f657-9957-4b1c-ba88-82963b909a00
+		summarizeBy: sum
+		sourceColumn: COST_AMOUNT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column GROSS_PROFIT
+		dataType: double
+		lineageTag: e9829afe-3dd2-4704-85d7-714fcbd51094
+		summarizeBy: sum
+		sourceColumn: GROSS_PROFIT
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition FCT_ORDERS = m
+		mode: import
+		source =
+				let
+				    Source = Snowflake.Databases("dwvfqzo-ktb65822.snowflakecomputing.com","REPORTING",[Implementation="2.0"]),
+				    ANALYTICS_Database = Source{[Name="ANALYTICS",Kind="Database"]}[Data],
+				    DBT_SRIRAM_MARTS_Schema = ANALYTICS_Database{[Name="DBT_SRIRAM_MARTS",Kind="Schema"]}[Data],
+				    FCT_ORDERS_Table = DBT_SRIRAM_MARTS_Schema{[Name="FCT_ORDERS",Kind="Table"]}[Data]
+				in
+				    FCT_ORDERS_Table
+
+	annotation PBI_ResultType = Table
