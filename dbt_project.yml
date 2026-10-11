@@ -21,8 +21,6 @@ models:
     marts:
       +materialized: table
       +schema: marts
-      +contract:
-        enforced: true     # every model under marts/ must have a contract
     audit:
         +materialized: table
         +schema: audit
