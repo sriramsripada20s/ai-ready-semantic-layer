@@ -1,9 +1,11 @@
 models:
   - name: fct_web_sessions
     description: One row per web/app session. Paid sessions carry the campaign that drove them.
+
+    # --- contract + ownership ---
     config:
       contract:
-        enforced: true
+        enforced: true                  # build fails if SQL columns/types differ from this file
       meta:
         grain: one row per session
         primary_key: session_id
@@ -11,12 +13,22 @@ models:
         sla: refreshed daily, ready by 06:30 ET; source lag <= 24h
         tier: 1
         consumers: [semantic_layer, power_bi]
+
+    # --- semantic model ---
+    semantic_model:
+      enabled: true
+      name: sessions                    # MetricFlow's name for this table
+    agg_time_dimension: session_date    # sessions are dated by when they started
+
+    # --- columns ---
     columns:
+      # entities (join keys)
       - name: session_id
         description: Primary key.
         data_type: bigint
         constraints: [{type: not_null}, {type: primary_key}]
         data_tests: [unique, not_null]
+        entity: {type: primary, name: session}          # fct_orders.session_id joins here
       - name: customer_id
         description: Signed-in customer.
         data_type: bigint
@@ -25,6 +37,7 @@ models:
               arguments:
                 to: ref('dim_customers')
                 field: customer_id
+        entity: {type: foreign, name: customer}         # sessions by region/segment; conversion key
       - name: campaign_id
         description: Paid campaign that drove the session (null for organic/direct).
         data_type: bigint
@@ -33,13 +46,15 @@ models:
               arguments:
                 to: ref('dim_campaigns')
                 field: campaign_id
-      - name: session_started_at
-        description: Session start timestamp (UTC).
-        data_type: timestamp
+        entity: {type: foreign, name: campaign}         # sessions by campaign name/channel
+
+      # dimensions (group by / filter)
       - name: session_date
         description: Session start date.
         data_type: date
         constraints: [{type: not_null}]
+        granularity: day
+        dimension: {type: time, label: Session date}
       - name: traffic_source
         description: organic_search, paid_search, email, social or direct.
         data_type: varchar
@@ -47,6 +62,41 @@ models:
           - accepted_values:
               arguments:
                 values: ['organic_search', 'paid_search', 'email', 'social', 'direct']
+        dimension: {type: categorical, label: Traffic source}
       - name: device_type
         description: mobile, desktop or tablet.
         data_type: varchar
+        dimension: {type: categorical, label: Device}
+
+      # detail (not grouped by)
+      - name: session_started_at
+        description: Session start timestamp (UTC).
+        data_type: timestamp
+
+    # --- metrics ---
+    metrics:
+      - name: sessions
+        label: Sessions
+        description: Count of web/app sessions.
+        type: simple
+        agg: sum
+        expr: 1                         # sum(1), not count: the form conversion metrics need (Step 4c)
+        fill_nulls_with: 0
+        config:
+          meta: {business_owner: VP Marketing, tier: 1, certified: true}
+
+      - name: campaign_sessions
+        label: Campaign sessions
+        description: Sessions driven by a paid campaign (paid_search, email, social).
+        type: simple
+        agg: sum
+        expr: 1
+        filter: "{{ Dimension('session__traffic_source') }} in ('paid_search', 'email', 'social')"
+        fill_nulls_with: 0
+
+      - name: visitors
+        label: Visitors
+        description: Distinct customers with a session in the period. Not additive across periods.
+        type: simple
+        agg: count_distinct
+        expr: customer_id

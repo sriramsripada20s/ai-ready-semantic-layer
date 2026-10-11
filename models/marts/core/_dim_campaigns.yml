@@ -1,6 +1,8 @@
 models:
   - name: dim_campaigns
     description: One row per paid campaign flight (paid_search, email, social), with budget.
+
+    # --- ownership (no contract: small internal reference table) ---
     config:
       meta:
         grain: one row per campaign flight
@@ -8,26 +10,57 @@ models:
         business_owner: VP Marketing
         sla: refreshed daily
         tier: 2
+
+    # --- table-level tests ---
     data_tests:
-      - dbt_utils.expression_is_true:          # a flight can't end before it starts
+      - dbt_utils.expression_is_true:           # a flight can't end before it starts
           arguments:
             expression: "end_date >= start_date"
+
+    # --- semantic model ---
+    semantic_model:
+      enabled: true
+      name: campaigns                   # MetricFlow's name for this table
+    agg_time_dimension: start_date      # spend is counted on the day the flight starts
+
+    # --- columns ---
     columns:
+      # entity: fct_orders and fct_web_sessions join here on `campaign`
       - name: campaign_id
         description: Primary key.
         data_tests: [unique, not_null]
+        entity: {type: primary, name: campaign}
+
+      # dimensions (group by / filter) - available to orders, sessions and spend
       - name: campaign_name
         description: Human-readable campaign name, e.g. EMAIL_FLIGHT_07.
+        dimension: {type: categorical, label: Campaign}
       - name: campaign_channel
         description: paid_search, email or social.
         data_tests:
           - accepted_values:
               arguments:
                 values: ['paid_search', 'email', 'social']
+        dimension: {type: categorical, label: Campaign channel}
       - name: start_date
         description: First day of the flight.
+        granularity: day
+        dimension: {type: time, label: Campaign start}
+
+      # detail and amounts
       - name: end_date
         description: Last day of the flight.
       - name: budget
         description: Total media spend for the flight (parsed from text in staging).
-        data_tests: [not_null]                 # [12] proves the '$2,450,000.00' parsing worked
+        data_tests: [not_null]                  # [12] proves the '$2,450,000.00' parsing worked
+
+    # --- metrics ---
+    metrics:
+      - name: campaign_spend
+        label: Campaign spend
+        description: Media budget of campaigns, attributed to the campaign start date.
+        type: simple
+        agg: sum
+        expr: budget
+        config:
+          meta: {business_owner: VP Marketing, tier: 1, certified: true}
