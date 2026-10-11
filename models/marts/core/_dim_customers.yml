@@ -1,9 +1,11 @@
 models:
   - name: dim_customers
     description: One row per customer with geography, segment and lifetime stats. Contains no PII.
+
+    # --- contract + ownership ---
     config:
       contract:
-        enforced: true
+        enforced: true                  # build fails if SQL columns/types differ from this file
       meta:
         grain: one row per customer
         primary_key: customer_id
@@ -11,29 +13,64 @@ models:
         sla: refreshed daily, ready by 06:30 ET
         tier: 1
         consumers: [semantic_layer, power_bi]
+
+    # --- semantic model ---
+    semantic_model:
+      enabled: true
+      name: customers                   # MetricFlow's name for this table
+    agg_time_dimension: signup_date     # default date for this table's metrics
+
+    # --- columns ---
     columns:
+      # entity (join key): fct_orders and fct_web_sessions join here on `customer`
       - name: customer_id
         description: Primary key.
         data_type: bigint
         constraints: [{type: not_null}, {type: primary_key}]
         data_tests: [unique, not_null]
+        entity: {type: primary, name: customer}
+
+      # dimensions (group by / filter) - available to every metric that has a customer
       - name: country_code
         description: ISO country code (variants like USA/U.S./uk standardized in staging).
         data_type: varchar
       - name: country_name
         description: Country name (from seeds/country_regions.csv).
         data_type: varchar
+        dimension: {type: categorical, name: country, label: Country}   # queried as customer__country
       - name: region
         description: Sales region. Drives row-level access in Snowflake (Phase 6).
         data_type: varchar
         constraints: [{type: not_null}]
         data_tests: [not_null]                 # [3] proves every country variant was mapped
+        dimension: {type: categorical, label: Region}
       - name: acquisition_channel
         description: How the customer was first acquired.
         data_type: varchar
+        dimension: {type: categorical, label: Acquisition channel}
       - name: signup_date
         description: Registration date.
         data_type: date
+        granularity: day
+        dimension: {type: time, label: Signup date}
+      - name: customer_segment
+        description: prospect (0 orders), one_time (1), repeat (2-14), loyal (15+). Current segment only.
+        data_type: varchar
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['prospect', 'one_time', 'repeat', 'loyal']
+        dimension: {type: categorical, label: Customer segment}
+      - name: is_deleted
+        description: >
+          Account was closed (soft delete in the source). Kept so historical orders and
+          sessions keep their customer; filter on it for "current customers" counts.
+        data_type: boolean
+        data_tests: [not_null]
+        dimension: {type: categorical, label: Account deleted}
+
+      # detail and amounts (used by metrics, not grouped by)
       - name: first_order_date
         description: Date of first order (null for prospects).
         data_type: date
@@ -43,17 +80,25 @@ models:
       - name: lifetime_net_revenue
         description: Net revenue from recognized orders to date.
         data_type: decimal(14, 2)
-      - name: customer_segment
-        description: prospect (0 orders), one_time (1), repeat (2-14), loyal (15+).
-        data_type: varchar
-        data_tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values: ['prospect', 'one_time', 'repeat', 'loyal']
-      - name: is_deleted
+
+    # --- metrics ---
+    metrics:
+      - name: new_signups
+        label: New signups
+        description: Customers who registered in the period (test accounts excluded).
+        type: simple
+        agg: count
+        expr: customer_id
+        fill_nulls_with: 0              # dated by signup_date (agg_time_dimension)
+
+      - name: customer_lifetime_value
+        label: Customer lifetime value (historical)
         description: >
-          Account was closed (soft delete in the source). Kept so historical orders and
-          sessions keep their customer; filter on it for "current customers" counts.
-        data_type: boolean
-        data_tests: [not_null]
+          Average net revenue per purchasing customer to date (recognized orders only;
+          prospects excluded). Group by signup date for cohort CLV. Historical, not predicted.
+        type: simple
+        agg: average
+        expr: lifetime_net_revenue
+        filter: "{{ Dimension('customer__customer_segment') }} <> 'prospect'"
+        config:
+          meta: {business_owner: VP Growth, tier: 1, certified: true}
