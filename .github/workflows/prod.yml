@@ -1,0 +1,47 @@
+# Production: runs when a PR merges to main, every morning, or on demand.
+# Builds the clean schemas Power BI and the agent read (STAGING, MARTS, ...).
+name: Prod
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 10 * * *"          # daily 10:17 UTC (~6am New York)
+  workflow_dispatch:               # "Run workflow" button in the Actions tab
+
+concurrency:
+  group: prod
+  cancel-in-progress: false        # never stop a prod run halfway
+
+env:
+  DBT_PROFILES_DIR: .
+  DBT_TARGET: prod
+  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+  SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+  SNOWFLAKE_PRIVATE_KEY_PATH: /tmp/rsa_key.p8
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Snowflake key
+        env: { KEY: "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" }
+        run: |
+          printf '%s\n' "$KEY" > /tmp/rsa_key.p8
+          chmod 600 /tmp/rsa_key.p8
+      - run: dbt deps
+      - run: dbt source freshness           # fail loudly if raw data is late
+      - run: dbt build --exclude tag:profiling
+      - run: mf validate-configs
+      - name: Smoke test a certified metric
+        run: mf query --metrics net_revenue,recognized_orders --group-by metric_time__year --order metric_time__year --decimals 2
+      # Publish prod's manifest: slim CI compares every PR against it (state:modified+)
+      - name: Save prod manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-manifest
+          path: target/manifest.json
+          retention-days: 30
