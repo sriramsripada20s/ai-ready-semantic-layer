@@ -1,86 +1,163 @@
-# CI: runs on every pull request.
-# SLIM by default: builds only the models this PR changed + everything downstream,
-# in throwaway schemas (CI_PR_<number>_*); unchanged parents are read from prod.
-# FULL build when the PR has the label `full-ci`, or when no prod manifest exists yet.
+# =========================================================================
+# CONTINUOUS INTEGRATION (CI) WORKFLOW
+# Runs automatically on Pull Requests to test changes before merging.
+# =========================================================================
 name: CI
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled]    # `labeled` so adding full-ci re-runs CI
+    # 'labeled' means if you manually add the 'full-ci' label to a PR, it triggers a rerun
+    types: [opened, synchronize, reopened, labeled]
 
-concurrency:                      # a new push to the same PR cancels the older run
+concurrency:
+  # If someone pushes new code to the same PR while this is running,
+  # cancel the old run to save time and Snowflake credits.
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
-  contents: read        # checkout the code
-  actions: read         # download the prod-manifest artifact from prod.yml runs
+  contents: read      # Needed to check out the repo code
+  actions: read       # Needed to download the production state artifact later
 
 env:
-  DBT_PROFILES_DIR: .                                   # profiles.yml is in the repo root
-  DBT_TARGET: snowflake                                 # dev-style target (not prod)
-  DBT_SCHEMA: ci_pr_${{ github.event.pull_request.number }}   # isolated schemas per PR
-  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}   # from GitHub repo secrets
+  # Tell dbt where to find connection settings
+  DBT_PROFILES_DIR: .
+  DBT_TARGET: snowflake
+
+  # CREATE AN ISOLATED SCHEMA FOR THIS PR (e.g., ci_pr_123)
+  # This ensures multiple developers don't overwrite each other's test tables.
+  DBT_SCHEMA: ci_pr_${{ github.event.pull_request.number }}
+
+  # Snowflake login credentials (pulled safely from GitHub Secrets)
+  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
   SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-  SNOWFLAKE_PRIVATE_KEY_PATH: /tmp/rsa_key.p8           # key file written in a step below
+  SNOWFLAKE_PRIVATE_KEY_PATH: /tmp/rsa_key.p8
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest        # fresh Linux machine from GitHub, discarded after the run
+  # ================================================================
+  # JOB 1: LINTING (Code Quality)
+  # Checks formatting and scans for leaked secrets. Fast and cheap.
+  # ================================================================
+  lint:
+    name: 1. Lint (pre-commit, SQLFluff, secrets)
+    runs-on: ubuntu-latest
     steps:
-      # --- setup ---
-      - uses: actions/checkout@v4                       # get the PR's code
-      - uses: actions/setup-python@v5                   # Python 3.11, with pip cache for speed
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: pip }
-      - run: pip install -r requirements.txt            # same pinned versions as your laptop
+      - run: pip install -r requirements.txt
+      - run: pre-commit run --all-files
 
-      # --- 1. code quality (no warehouse needed) ---
-      - run: pre-commit run --all-files                 # secrets, YAML, SQLFluff; catches skipped local hooks
+  # ================================================================
+  # JOB 2: PARSE (Logic Check)
+  # Ensures YAML configs and Jinja are valid.
+  # Doesn't query the warehouse yet, just checks the code logic.
+  # ================================================================
+  parse:
+    name: 2. Parse + semantic definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements.txt
 
-      # --- 2. Snowflake credentials ---
+      # Authenticate to Snowflake
       - name: Snowflake key
         env: { KEY: "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" }
-        run: |
-          printf '%s\n' "$KEY" > /tmp/rsa_key.p8        # secret -> temp file, never printed or committed
-          chmod 600 /tmp/rsa_key.p8                     # readable only by this job
-      - run: dbt deps                                   # install dbt_utils etc.
+        run: printf '%s\n' "$KEY" > /tmp/rsa_key.p8 && chmod 600 /tmp/rsa_key.p8
 
-      # --- 3. get prod's manifest: the "state" to compare this PR against ---
+      - run: dbt deps
+      - run: dbt parse --no-partial-parse         # Checks if dbt project files are structurally sound
+      - run: mf validate-configs --skip-dw        # Checks if MetricFlow metrics/dimensions make sense
+
+  # ================================================================
+  # JOB 3: BUILD (Execute in Snowflake)
+  # Actually builds tables and runs tests in the isolated PR schema.
+  # Only runs if Jobs 1 and 2 pass to save Snowflake credits.
+  # ================================================================
+  build:
+    name: 3. dbt build + tests on Snowflake
+    needs: [lint, parse]
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}        # Passes 'slim' or 'full' to Job 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Snowflake key
+        env: { KEY: "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" }
+        run: printf '%s\n' "$KEY" > /tmp/rsa_key.p8 && chmod 600 /tmp/rsa_key.p8
+      - run: dbt deps
+
+      # Get the 'manifest.json' from production. We need this to figure out
+      # exactly what changed so we don't have to rebuild the entire warehouse.
       - name: Download prod manifest
-        uses: dawidd6/action-download-artifact@v6       # fetches an artifact from another workflow
-        continue-on-error: true                         # prod.yml not on main yet -> 404; fall back to full build
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: prod.yml
           branch: main
           name: prod-manifest
-          path: prod-state                              # -> prod-state/manifest.json
-          if_no_artifact_found: warn                    # first run: no manifest yet -> full build
+          path: prod-state
+          if_no_artifact_found: warn
 
-      # --- 4. decide: slim or full ---
+      # Decide if we are doing a SLIM build (fast) or FULL build (slow/expensive)
       - name: Choose build mode
         id: mode
         run: |
+          # If the user added the 'full-ci' label OR there is no prod manifest, do a FULL build
           if [ "${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}" = "true" ] \
              || [ ! -f prod-state/manifest.json ]; then
-            echo "mode=full" >> "$GITHUB_OUTPUT"; echo "FULL build (label full-ci, or no prod manifest yet)"
+            echo "mode=full" >> "$GITHUB_OUTPUT"
           else
-            echo "mode=slim" >> "$GITHUB_OUTPUT"; echo "SLIM build: changed models + downstream, parents from prod"
+            echo "mode=slim" >> "$GITHUB_OUTPUT"
           fi
 
-      # --- 5a. slim: only what changed, defer the rest to prod ---
-      - name: Slim build
+      # SLIM BUILD: Only builds models you actually changed in this PR (and their downstream dependents).
+      # It uses the production manifest to "defer" unchanged models to production to save time.
+      - name: dbt build (slim - changed models + downstream, parents from prod)
         if: steps.mode.outputs.mode == 'slim'
         run: dbt build --select state:modified+ --defer --state prod-state --exclude tag:profiling
 
-      - name: Semantic layer (definitions only)
-        if: steps.mode.outputs.mode == 'slim'
-        run: mf validate-configs --skip-dw               # unchanged tables aren't in CI schemas, so skip warehouse checks
-
-      # --- 5b. full: everything in CI schemas, then full semantic validation ---
-      - name: Full build
+      # FULL BUILD: Builds everything from scratch in the PR schema.
+      - name: dbt build (full - everything)
         if: steps.mode.outputs.mode == 'full'
         run: dbt build --exclude tag:profiling
 
-      - name: Semantic layer (definitions + warehouse)
-        if: steps.mode.outputs.mode == 'full'
-        run: mf validate-configs                         # every metric's columns exist in the built tables
+      # Creates a nice summary table on the GitHub Actions UI showing pass/fail counts
+      - name: Write run summary
+        if: always()
+        run: |
+          echo "### dbt build: **${{ steps.mode.outputs.mode }}** mode" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f target/run_results.json ]; then
+            python -c "import json,collections; r=json.load(open('target/run_results.json'))['results']; c=collections.Counter(x['status'] for x in r); print('| status | count |\n|---|---|'); [print(f'| {k} | {v} |') for k,v in sorted(c.items())]" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # ================================================================
+  # JOB 4: SEMANTIC VS WAREHOUSE VALIDATION
+  # Checks that the metrics actually map to columns that exist in the database.
+  # ================================================================
+  semantic-warehouse:
+    name: 4. Semantic layer vs warehouse
+    needs: build
+
+    # We only run this if we did a FULL build.
+    # If we did a SLIM build, most tables wouldn't exist in our isolated PR schema,
+    # so this check would falsely fail.
+    if: needs.build.outputs.mode == 'full'
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Snowflake key
+        env: { KEY: "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" }
+        run: printf '%s\n' "$KEY" > /tmp/rsa_key.p8 && chmod 600 /tmp/rsa_key.p8
+      - run: dbt deps
+
+      # Final check: Do the MetricFlow definitions perfectly match the physical tables?
+      - run: mf validate-configs
