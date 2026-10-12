@@ -1,0 +1,175 @@
+# Frozen eval set (Lesson 10). Don't change questions after the baseline run.
+# expect:    answer | clarify_or_answer | refuse
+# truth:     how to get the correct value from MetricFlow (metric / group_by / pick / all / expr)
+# check:     truth values that must ALL appear in a correct answer
+# check_any: at least ONE of these must appear
+# wrong:     values that mean the wrong metric was used
+# derived:   true -> answer must label its arithmetic as calculated
+
+# ---------- A. Same metric, different words ----------
+- id: A1
+  type: same_metric
+  question: What is our total net revenue?
+  expect: answer
+  truth:
+    net_revenue: {metric: net_revenue}
+  check: [net_revenue]
+
+- id: A2
+  type: same_metric
+  question: Give me net sales for the whole period.
+  expect: answer
+  truth:
+    net_revenue: {metric: net_revenue}
+  check: [net_revenue]
+
+- id: A3
+  type: same_metric
+  question: How many orders have been recognized?
+  expect: answer
+  truth:
+    recognized_orders: {metric: recognized_orders}
+  check: [recognized_orders]
+
+- id: A4
+  type: same_metric
+  question: How many units have we sold in total?
+  expect: answer
+  truth:
+    units_sold: {metric: units_sold}
+  check: [units_sold]
+
+# ---------- B. Slice / filter ----------
+- id: B1
+  type: slice_filter
+  question: What is net revenue by product category?
+  expect: answer
+  truth:
+    by_category: {metric: product_net_revenue, group_by: product__category, all: true}
+  check: [by_category]
+
+- id: B2
+  type: slice_filter
+  question: How many recognized orders did we have each year?
+  expect: answer
+  truth:
+    by_year: {metric: recognized_orders, group_by: metric_time__year, all: true}
+  check: [by_year]
+
+- id: B3
+  type: slice_filter
+  question: Break down net revenue by sales channel.
+  expect: answer
+  truth:
+    by_channel: {metric: net_revenue, group_by: sales_order__sales_channel, all: true}
+  check: [by_channel]
+
+- id: B4
+  type: slice_filter
+  question: What was net revenue in 2024?
+  expect: answer
+  truth:
+    rev_2024: {metric: net_revenue, group_by: metric_time__year, pick: "2024"}
+  check: [rev_2024]
+
+- id: B5
+  type: slice_filter
+  question: How many new customer signups did we get by country?
+  expect: answer
+  truth:
+    by_country: {metric: new_signups, group_by: customer__country, all: true}
+  check: [by_country]
+
+# ---------- C. Ambiguous ----------
+- id: C1
+  type: ambiguous
+  question: How many orders did we get?
+  expect: clarify_or_answer
+  truth:
+    recognized_orders: {metric: recognized_orders}
+    all_orders: {metric: orders}
+  check: [recognized_orders]
+  wrong: [all_orders]
+
+- id: C2
+  type: ambiguous
+  question: What were our sales?
+  expect: clarify_or_answer
+  truth:
+    net_revenue: {metric: net_revenue}
+    gmv: {metric: gross_merchandise_value}
+  check_any: [net_revenue, gmv]
+
+- id: C3
+  type: ambiguous
+  question: How much revenue did Apparel make?
+  expect: clarify_or_answer
+  truth:
+    apparel: {metric: product_net_revenue, group_by: product__category, pick: Apparel}
+  check: [apparel]
+
+# ---------- D. Derived (arithmetic on certified values) ----------
+- id: D1
+  type: derived
+  question: What share of total net revenue comes from Apparel?
+  expect: answer
+  derived: true
+  truth:
+    apparel: {metric: product_net_revenue, group_by: product__category, pick: Apparel}
+    total: {metric: net_revenue}
+    share_pct: {expr: "apparel / total * 100"}
+  check: [share_pct]
+
+- id: D2
+  type: derived
+  question: What was the percentage change in net revenue from 2023 to 2024?
+  expect: answer
+  derived: true
+  truth:
+    rev_2023: {metric: net_revenue, group_by: metric_time__year, pick: "2023"}
+    rev_2024: {metric: net_revenue, group_by: metric_time__year, pick: "2024"}
+    pct_change: {expr: "(rev_2024 - rev_2023) / rev_2023 * 100"}
+  check: [pct_change]
+
+- id: D3
+  type: derived
+  question: What is our average net revenue per recognized order?
+  expect: answer
+  derived: true
+  truth:
+    net_revenue: {metric: net_revenue}
+    recognized_orders: {metric: recognized_orders}
+    per_order: {expr: "net_revenue / recognized_orders"}
+  check: [per_order]
+
+- id: D4
+  type: derived
+  question: How many more orders were placed than were recognized?
+  expect: answer
+  derived: true
+  truth:
+    all_orders: {metric: orders}
+    recognized_orders: {metric: recognized_orders}
+    difference: {expr: "all_orders - recognized_orders"}
+  check: [difference]
+
+# ---------- E. Out of scope ----------
+- id: E1
+  type: out_of_scope
+  question: What's our customer churn rate?
+  expect: refuse
+
+- id: E2
+  type: out_of_scope
+  question: Give me the emails of our top 10 customers.
+  expect: refuse
+
+- id: E3
+  type: out_of_scope
+  question: What's the weather in Durham today?
+  expect: refuse
+
+- id: E4
+  type: out_of_scope
+  question: What will our revenue be next quarter?
+  expect: refuse
