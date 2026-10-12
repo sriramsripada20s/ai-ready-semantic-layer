@@ -4,6 +4,8 @@
 # check:     truth values that must ALL appear in a correct answer
 # check_any: at least ONE of these must appear
 # wrong:     values that mean the wrong metric was used
+# expected_metrics:     metrics the generated SQL must use (all)
+# expected_metrics_any: SQL must use at least one of these
 # derived:   true -> answer must label its arithmetic as calculated
 
 # ---------- A. Same metric, different words ----------
@@ -11,6 +13,7 @@
   type: same_metric
   question: What is our total net revenue?
   expect: answer
+  expected_metrics: [net_revenue]
   truth:
     net_revenue: {metric: net_revenue}
   check: [net_revenue]
@@ -19,6 +22,7 @@
   type: same_metric
   question: Give me net sales for the whole period.
   expect: answer
+  expected_metrics: [net_revenue]
   truth:
     net_revenue: {metric: net_revenue}
   check: [net_revenue]
@@ -27,6 +31,7 @@
   type: same_metric
   question: How many orders have been recognized?
   expect: answer
+  expected_metrics: [recognized_orders]
   truth:
     recognized_orders: {metric: recognized_orders}
   check: [recognized_orders]
@@ -35,6 +40,7 @@
   type: same_metric
   question: How many units have we sold in total?
   expect: answer
+  expected_metrics: [units_sold]
   truth:
     units_sold: {metric: units_sold}
   check: [units_sold]
@@ -44,6 +50,7 @@
   type: slice_filter
   question: What is net revenue by product category?
   expect: answer
+  expected_metrics: [product_net_revenue]
   truth:
     by_category: {metric: product_net_revenue, group_by: product__category, all: true}
   check: [by_category]
@@ -52,6 +59,7 @@
   type: slice_filter
   question: How many recognized orders did we have each year?
   expect: answer
+  expected_metrics: [recognized_orders]
   truth:
     by_year: {metric: recognized_orders, group_by: metric_time__year, all: true}
   check: [by_year]
@@ -60,6 +68,7 @@
   type: slice_filter
   question: Break down net revenue by sales channel.
   expect: answer
+  expected_metrics: [net_revenue]
   truth:
     by_channel: {metric: net_revenue, group_by: sales_order__sales_channel, all: true}
   check: [by_channel]
@@ -68,6 +77,7 @@
   type: slice_filter
   question: What was net revenue in 2024?
   expect: answer
+  expected_metrics: [net_revenue]
   truth:
     rev_2024: {metric: net_revenue, group_by: metric_time__year, pick: "2024"}
   check: [rev_2024]
@@ -76,6 +86,7 @@
   type: slice_filter
   question: How many new customer signups did we get by country?
   expect: answer
+  expected_metrics: [new_signups]
   truth:
     by_country: {metric: new_signups, group_by: customer__country, all: true}
   check: [by_country]
@@ -85,6 +96,7 @@
   type: ambiguous
   question: How many orders did we get?
   expect: clarify_or_answer
+  expected_metrics: [recognized_orders]
   truth:
     recognized_orders: {metric: recognized_orders}
     all_orders: {metric: orders}
@@ -95,6 +107,7 @@
   type: ambiguous
   question: What were our sales?
   expect: clarify_or_answer
+  expected_metrics_any: [net_revenue, gross_merchandise_value]
   truth:
     net_revenue: {metric: net_revenue}
     gmv: {metric: gross_merchandise_value}
@@ -104,6 +117,7 @@
   type: ambiguous
   question: How much revenue did Apparel make?
   expect: clarify_or_answer
+  expected_metrics: [product_net_revenue]
   truth:
     apparel: {metric: product_net_revenue, group_by: product__category, pick: Apparel}
   check: [apparel]
@@ -113,6 +127,7 @@
   type: derived
   question: What share of total net revenue comes from Apparel?
   expect: answer
+  expected_metrics: [product_net_revenue]
   derived: true
   truth:
     apparel: {metric: product_net_revenue, group_by: product__category, pick: Apparel}
@@ -124,6 +139,7 @@
   type: derived
   question: What was the percentage change in net revenue from 2023 to 2024?
   expect: answer
+  expected_metrics: [net_revenue]
   derived: true
   truth:
     rev_2023: {metric: net_revenue, group_by: metric_time__year, pick: "2023"}
@@ -135,6 +151,7 @@
   type: derived
   question: What is our average net revenue per recognized order?
   expect: answer
+  expected_metrics: [net_revenue, recognized_orders]
   derived: true
   truth:
     net_revenue: {metric: net_revenue}
@@ -146,6 +163,7 @@
   type: derived
   question: How many more orders were placed than were recognized?
   expect: answer
+  expected_metrics: [orders, recognized_orders]
   derived: true
   truth:
     all_orders: {metric: orders}

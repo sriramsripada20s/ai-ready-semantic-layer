@@ -127,11 +127,8 @@ def check_sql(sql: str) -> str:
     return body
 
 
-async def run_metric_sql(sql: str, timeout: int = 60) -> dict:
-    """Run guarded SQL through the Snowflake SQL API as AGENT_READER."""
-    # First, run the SQL through our security guardrails
-    body = check_sql(sql)
-
+async def execute_sql(body: str, timeout: int = 60) -> dict:
+    """Run already-checked SQL through the Snowflake SQL API as AGENT_READER."""
     # Prepare the payload for the Snowflake REST API
     payload = {"statement": body, "warehouse": "REPORTING", "role": "AGENT_READER", "timeout": timeout}
     headers = {**AUTH_HEADERS, "Accept": "application/json"}
@@ -171,3 +168,8 @@ async def run_metric_sql(sql: str, timeout: int = 60) -> dict:
              len(res["data"]), time.perf_counter() - start, res.get("statementHandle"))
 
     return {"columns": columns, "rows": res["data"]}
+
+
+async def run_metric_sql(sql: str, timeout: int = 60) -> dict:
+    """S1 path: semantic-view guard, then execute."""
+    return await execute_sql(check_sql(sql), timeout)
