@@ -176,6 +176,10 @@ Every request from the agent passes four checks, in this order:
 
 **The semantic layer encodes them once, and every consumer inherits them.**
 
+## How this was built
+ 
+Built with AI-assisted development (Claude and Claude Code). I designed the architecture, ran and verified every step on Snowflake, and own the results. AI was used as a pair programmer: for explaining concepts, drafting code that I reviewed and tested, and building the Power BI measures through the Power BI Modeling MCP server. Every number in this README was checked against MetricFlow.
+
 ### Next steps
 - **Agent v2:** rename `orders` → `all_orders`, give the agent the real metric catalog, fix the tool description, convert dates, tighten prompt rules, then re-run the eval.
 - Human-in-the-loop approval for agent actions (e.g. saving or sending a report).
