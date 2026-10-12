@@ -36,5 +36,7 @@ def setup_logging(level: str | None = None) -> None:
 
     # Library noise: keep httpx at INFO (one line per HTTP call: URL + status, no headers)
     logging.getLogger("httpx").setLevel(logging.INFO)
-    for noisy in ("httpcore", "mcp", "anyio"):
-        logging.getLogger(noisy).setLevel(logging.WARNING)
+    for http_logger in ("httpx", "httpx2"):
+      logging.getLogger(http_logger).setLevel(logging.INFO)
+    for noisy in ("httpcore", "httpcore2", "mcp", "anyio"):
+      logging.getLogger(noisy).setLevel(logging.WARNING)
